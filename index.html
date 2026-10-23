@@ -163,6 +163,7 @@ button {
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7), inset 0 0 20px rgba(185, 255, 92, 0.04);
+    position: relative;
 }
 
 label {
@@ -271,13 +272,13 @@ input:focus, select:focus {
 .topbar-right {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
 }
 
 .score-badge, .skip-badge, .tier-badge {
     border: 1px solid var(--line);
     background: #0c1111;
-    padding: 8px 14px;
+    padding: 8px 12px;
     border-radius: 10px;
     font-family: 'Orbitron', monospace;
     font-weight: 900;
@@ -551,6 +552,73 @@ input:focus, select:focus {
     color: var(--muted);
 }
 
+/* SMOOTH SECTOR PROMOTION BANNER (NO POPUP ALERT) */
+.promotion-banner {
+    position: absolute;
+    inset: 0;
+    background: rgba(8, 14, 14, 0.96);
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+    text-align: center;
+    padding: 30px;
+    animation: promoFade 0.4s ease forwards;
+}
+
+@keyframes promoFade {
+    from { opacity: 0; transform: scale(0.96); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.promo-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 26px;
+    font-weight: 900;
+    color: var(--cyan);
+    letter-spacing: 2px;
+    text-shadow: 0 0 25px rgba(0, 242, 254, 0.45);
+    margin-bottom: 8px;
+}
+
+.promo-desc {
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+}
+
+/* LEADERBOARD VIEW */
+.leaderboard-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 18px;
+    margin-bottom: 24px;
+}
+
+.leaderboard-table th {
+    text-align: left;
+    padding: 12px;
+    border-bottom: 2px solid var(--line);
+    color: var(--green);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+}
+
+.leaderboard-table td {
+    padding: 14px 12px;
+    border-bottom: 1px solid var(--line-subtle);
+    font-size: 14px;
+}
+
+.leaderboard-table tr:first-child td {
+    color: var(--yellow);
+    font-weight: 800;
+}
+
 .secret-drawer {
     display: none;
     margin-top: 18px;
@@ -759,6 +827,10 @@ input:focus, select:focus {
             ENTER THE FIELD
         </button>
 
+        <button type="button" class="secondary-btn" onclick="showLeaderboardScreen()">
+            🏆 VIEW LEADERBOARD
+        </button>
+
         <div id="entranceFeedback" class="message" style="color: var(--red);"></div>
 
         <!-- SECRET ADMIN CIPHER DRAWER (zoo -> hunt) -->
@@ -808,6 +880,13 @@ input:focus, select:focus {
     </div>
 
     <div class="panel">
+        <!-- SMOOTH LEVEL UP BANNER (DROPS IN INSTEAD OF BROWSER POPUP) -->
+        <div id="promotionBanner" class="promotion-banner hidden">
+            <div style="font-size: 2.6rem; margin-bottom: 10px;">⚡</div>
+            <div class="promo-title" id="promoTitle">SECTOR ADVANCEMENT</div>
+            <div class="promo-desc" id="promoDesc">Calibrating acoustic sensors...</div>
+        </div>
+
         <div class="signal-header">
             <span class="signal-label" id="tierProgressLabel">TRANSMISSION 01</span>
             <span id="signalNumber" class="signal-number">01</span>
@@ -870,11 +949,47 @@ input:focus, select:focus {
             3 acoustic analysis attempts remaining
         </div>
 
-        <!-- Result display with hidden answers until hearts exhausted/skip -->
+        <!-- Result display with auto progress bar -->
         <div id="result" class="result">
             <div id="resultContent"></div>
             <div id="autoProgressBar" class="auto-progress-bar"></div>
         </div>
+    </div>
+</section>
+
+<!-- =====================================================
+     GLOBAL LEADERBOARD SCREEN
+===================================================== -->
+<section id="leaderboardScreen" class="screen hidden">
+    <div class="logo">RECONNAISSANCE RANKINGS // HIGH SCORES</div>
+
+    <h1 class="hero-title">
+        FIELD<br>
+        <span>CHAMPIONS</span>
+    </h1>
+
+    <p class="subtitle">
+        Top acoustic intelligence scores across expeditions:
+    </p>
+
+    <div class="panel">
+        <table class="leaderboard-table">
+            <thead>
+                <tr>
+                    <th>RANK</th>
+                    <th>AGENT CALLSIGN</th>
+                    <th>POINTS</th>
+                    <th>DATE</th>
+                </tr>
+            </thead>
+            <tbody id="leaderboardBody">
+                <!-- Dynamically populated -->
+            </tbody>
+        </table>
+
+        <button type="button" class="main-btn" onclick="returnToStart()">
+            RETURN TO SURFACE
+        </button>
     </div>
 </section>
 
@@ -899,9 +1014,13 @@ input:focus, select:focus {
             <span id="finalScoreDisplay">0</span> PTS SECURED
         </div>
         <p style="color: var(--muted); margin-bottom: 24px; font-size: 13px;">
-            Outstanding field work, Agent <span id="finalAgentName" style="color: #fff; font-weight: bold;"></span>. Transmission archives recorded.
+            Outstanding field work, Agent <span id="finalAgentName" style="color: #fff; font-weight: bold;"></span>. Transmission archives recorded to leaderboard.
         </p>
-        <button type="button" class="main-btn" onclick="returnToStart()">
+
+        <button type="button" class="main-btn" onclick="showLeaderboardScreen()">
+            🏆 VIEW LEADERBOARD
+        </button>
+        <button type="button" class="secondary-btn" onclick="returnToStart()">
             SURFACE TO ENTRANCE
         </button>
     </div>
@@ -1118,6 +1237,7 @@ let currentFilter = "all";
 const screens = [
     "nameScreen",
     "gameScreen",
+    "leaderboardScreen",
     "completeScreen",
     "adminScreen"
 ];
@@ -1250,10 +1370,12 @@ function loadNextQueuedSignal() {
     clearTimeout(autoAdvanceTimeout);
 
     if (currentTierQueueIndex >= currentTierQueue.length) {
+        // SMOOTH SECTOR ADVANCEMENT: Trigger in-game HUD banner without browser popup
         if (currentTierIndex < TIERS.length - 1) {
             currentTierIndex++;
-            alert(`✓ SECTOR CLEARED! Advancing to ${TIERS[currentTierIndex].toUpperCase()} zone.`);
-            startTier(currentTierIndex);
+            showPromotionBanner(TIERS[currentTierIndex].toUpperCase(), () => {
+                startTier(currentTierIndex);
+            });
         } else {
             finishExpedition();
         }
@@ -1294,13 +1416,34 @@ function loadNextQueuedSignal() {
     audio.src = currentAnimal.file_url;
 }
 
-function finishExpedition() {
+/* In-game non-blocking level promotion */
+function showPromotionBanner(nextTierName, callback) {
+    const banner = document.getElementById("promotionBanner");
+    const promoTitle = document.getElementById("promoTitle");
+    const promoDesc = document.getElementById("promoDesc");
+
+    promoTitle.textContent = `SECTOR ADVANCED: ${nextTierName}`;
+    promoDesc.textContent = `Calibrating sensitivity for deeper acoustic reconnaissance...`;
+
+    banner.classList.remove("hidden");
+
+    setTimeout(() => {
+        banner.classList.add("hidden");
+        if (callback) callback();
+    }, 1800);
+}
+
+async function finishExpedition() {
     clearTimeout(autoAdvanceTimeout);
     const audio = document.getElementById("audio");
     audio.pause();
 
     document.getElementById("finalScoreDisplay").textContent = score;
     document.getElementById("finalAgentName").textContent = participantName;
+
+    // Record high score to Supabase Leaderboard
+    await saveScoreToLeaderboard(participantName, score);
+
     showScreen("completeScreen");
 }
 
@@ -1450,7 +1593,6 @@ function skipSignal() {
 
     audio.pause();
 
-    // Animal is revealed upon skipping
     const result = document.getElementById("result");
     result.className = "result wrong";
     document.getElementById("resultContent").innerHTML = `
@@ -1460,7 +1602,7 @@ function skipSignal() {
         </div>
     `;
 
-    finishSignalStep(2000); // 2 seconds display before moving to next
+    finishSignalStep(2000);
 }
 
 function updateSkipsUI() {
@@ -1486,7 +1628,6 @@ function finishSignalStep(delayMs = 1500) {
     document.getElementById("answerInput").disabled = true;
     document.getElementById("checkBtn").disabled = true;
 
-    // Animate the bottom progress bar over delayMs duration
     const progressBar = document.getElementById("autoProgressBar");
     progressBar.style.transition = 'none';
     progressBar.style.width = '0%';
@@ -1496,11 +1637,68 @@ function finishSignalStep(delayMs = 1500) {
         progressBar.style.width = '100%';
     }, 40);
 
-    // Automatically advance to the next signal
     clearTimeout(autoAdvanceTimeout);
     autoAdvanceTimeout = setTimeout(() => {
         loadNextQueuedSignal();
     }, delayMs);
+}
+
+/* =========================================================
+   LEADERBOARD OPERATIONS
+========================================================= */
+async function saveScoreToLeaderboard(name, finalScore) {
+    if (!name || finalScore <= 0) return;
+
+    try {
+        const today = new Date().toISOString().split("T")[0];
+        await supabaseClient
+            .from("leaderboard")
+            .insert({
+                player_name: name,
+                score: finalScore,
+                recorded_date: today
+            });
+    } catch (e) {
+        console.warn("Leaderboard save warning:", e);
+    }
+}
+
+async function showLeaderboardScreen() {
+    showScreen("leaderboardScreen");
+    const tbody = document.getElementById("leaderboardBody");
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color: var(--muted); padding: 25px;">Fetching high scores...</td></tr>`;
+
+    try {
+        const { data, error } = await supabaseClient
+            .from("leaderboard")
+            .select("*")
+            .order("score", { ascending: false })
+            .limit(20);
+
+        if (error || !data || data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color: var(--muted); padding: 25px;">No intelligence scores logged yet.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = "";
+        data.forEach((entry, i) => {
+            let rank = `#${i + 1}`;
+            if (i === 0) rank = "🥇 #1";
+            if (i === 1) rank = "🥈 #2";
+            if (i === 2) rank = "🥉 #3";
+
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td style="font-family: 'Orbitron'; font-size: 12px;">${rank}</td>
+                <td><strong>${entry.player_name}</strong></td>
+                <td style="color: var(--green); font-family: 'Orbitron'; font-weight: 800;">${entry.score} PTS</td>
+                <td style="color: var(--muted); font-size: 11px;">${entry.recorded_date || 'RECENT'}</td>
+            `;
+            tbody.appendChild(row);
+        });
+    } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color: var(--red); padding: 25px;">Failed to load leaderboard.</td></tr>`;
+    }
 }
 
 /* =========================================================
