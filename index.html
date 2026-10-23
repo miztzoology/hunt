@@ -464,7 +464,7 @@ input:focus, select:focus {
     box-shadow: 0 0 10px rgba(185, 255, 92, 0.4);
 }
 
-/* RESULTS & ANSWER REVEAL */
+/* RESULTS & AUTO TRANSITION BAR */
 .result {
     margin-top: 18px;
     padding: 16px;
@@ -473,6 +473,8 @@ input:focus, select:focus {
     font-size: 13px;
     display: none;
     line-height: 1.6;
+    position: relative;
+    overflow: hidden;
 }
 
 .result.correct {
@@ -505,6 +507,20 @@ input:focus, select:focus {
     font-size: 14px;
     font-weight: 800;
     margin-top: 4px;
+}
+
+.auto-progress-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 4px;
+    background: var(--green);
+    width: 0%;
+    transition: width linear;
+}
+
+.result.wrong .auto-progress-bar {
+    background: var(--yellow);
 }
 
 .skip-btn {
@@ -854,12 +870,11 @@ input:focus, select:focus {
             3 acoustic analysis attempts remaining
         </div>
 
-        <!-- Detailed result display with answers -->
-        <div id="result" class="result"></div>
-
-        <button type="button" id="nextBtn" class="secondary-btn hidden">
-            NEXT TRANSMISSION ➔
-        </button>
+        <!-- Result display with hidden answers until hearts exhausted/skip -->
+        <div id="result" class="result">
+            <div id="resultContent"></div>
+            <div id="autoProgressBar" class="auto-progress-bar"></div>
+        </div>
     </div>
 </section>
 
@@ -1078,7 +1093,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
    SEQUENTIAL GAME STATE
 ========================================================= */
 const TIERS = ["easy", "medium", "hard"];
-let currentTierIndex = 0; // 0 = easy, 1 = medium, 2 = hard
+let currentTierIndex = 0;
 
 let participantName = "";
 let currentAnimal = null;
@@ -1090,6 +1105,8 @@ let score = 0;
 let signalNumber = 0;
 let skipsRemaining = 3;
 let lastEnteredAnswer = "";
+
+let autoAdvanceTimeout = null;
 
 let allAnimals = [];
 let adminAnimals = [];
@@ -1168,7 +1185,6 @@ async function startEntry() {
         return;
     }
 
-    // Start sequentially at Tier 1 (Easy)
     initSequentialExpedition();
 }
 
@@ -1194,7 +1210,7 @@ function initSequentialExpedition() {
     score = 0;
     signalNumber = 0;
     skipsRemaining = 3;
-    currentTierIndex = 0; // Starts at easy
+    currentTierIndex = 0;
 
     document.getElementById("score").textContent = score;
     updateSkipsUI();
@@ -1205,12 +1221,9 @@ function initSequentialExpedition() {
 
 function startTier(tierIdx) {
     const tierName = TIERS[tierIdx];
-    
-    // Filter and shuffle animals for this tier
     const tierAnimals = allAnimals.filter(a => a.difficulty === tierName);
 
     if (tierAnimals.length === 0) {
-        // If this tier is empty, jump to next tier
         if (tierIdx < TIERS.length - 1) {
             startTier(tierIdx + 1);
             return;
@@ -1220,7 +1233,6 @@ function startTier(tierIdx) {
         }
     }
 
-    // Shuffle tier animals
     currentTierQueue = [...tierAnimals].sort(() => Math.random() - 0.5);
     currentTierQueueIndex = 0;
 
@@ -1235,9 +1247,9 @@ function updateTierBadges() {
 }
 
 function loadNextQueuedSignal() {
-    // Check if we exhausted all signals in this tier
+    clearTimeout(autoAdvanceTimeout);
+
     if (currentTierQueueIndex >= currentTierQueue.length) {
-        // Advance to next tier if available
         if (currentTierIndex < TIERS.length - 1) {
             currentTierIndex++;
             alert(`✓ SECTOR CLEARED! Advancing to ${TIERS[currentTierIndex].toUpperCase()} zone.`);
@@ -1264,11 +1276,14 @@ function loadNextQueuedSignal() {
     answerInput.disabled = false;
 
     document.getElementById("checkBtn").disabled = false;
-    document.getElementById("nextBtn").classList.add("hidden");
 
     const result = document.getElementById("result");
     result.className = "result";
-    result.innerHTML = "";
+    document.getElementById("resultContent").innerHTML = "";
+
+    const progressBar = document.getElementById("autoProgressBar");
+    progressBar.style.transition = 'none';
+    progressBar.style.width = '0%';
 
     updateAttempts();
     resetAudioVisualizer();
@@ -1280,6 +1295,7 @@ function loadNextQueuedSignal() {
 }
 
 function finishExpedition() {
+    clearTimeout(autoAdvanceTimeout);
     const audio = document.getElementById("audio");
     audio.pause();
 
@@ -1329,7 +1345,7 @@ function resetAudioVisualizer() {
 }
 
 /* =========================================================
-   ANSWER VERIFICATION & EXPLICIT REVEAL
+   ANSWER VERIFICATION & AUTOMATIC PROCEED ENGINE
 ========================================================= */
 document.getElementById("checkBtn").addEventListener("click", checkAnswer);
 document.getElementById("answerInput").addEventListener("keydown", (e) => {
@@ -1360,42 +1376,43 @@ function checkAnswer() {
         score++;
         document.getElementById("score").textContent = score;
         showResultCorrect(`✓ SIGNAL IDENTIFIED: <strong>${currentAnimal.name.toUpperCase()}</strong> (+1 PT)`);
-        finishSignalStep();
+        finishSignalStep(1500); // 1.5 seconds delay then moves automatically
         return;
     }
 
     if (attempts < 3) {
-        showResultRetry(`✕ MISIDENTIFIED ("${lastEnteredAnswer}") — RE-EVALUATE FREQUENCY`);
+        // KEEP ANIMAL NAME HIDDEN: only report wrong guess and attempts left
+        showResultRetry(`✕ MISIDENTIFIED ("${lastEnteredAnswer}") — TRY AGAIN`);
         updateAttempts();
         document.getElementById("answerInput").select();
         return;
     }
 
-    // 3 ATTEMPTS EXHAUSTED: Reveal both wrong guess and correct answer
+    // ALL ATTEMPTS LOST: Reveal species name and auto-advance after 2 seconds
     showResultWrong(lastEnteredAnswer, currentAnimal.name);
-    finishSignalStep();
+    finishSignalStep(2000); 
 }
 
 function showResultCorrect(html) {
     const result = document.getElementById("result");
     result.className = "result correct";
-    result.innerHTML = html;
+    document.getElementById("resultContent").innerHTML = html;
 }
 
 function showResultRetry(html) {
     const result = document.getElementById("result");
     result.className = "result wrong";
-    result.innerHTML = html;
+    document.getElementById("resultContent").innerHTML = html;
 }
 
 function showResultWrong(userGuess, actualAnswer) {
     const result = document.getElementById("result");
     result.className = "result wrong";
-    result.innerHTML = `
-        <div style="font-weight: 900; color: var(--red); margin-bottom: 4px;">✕ SIGNAL CORRUPTED — ATTEMPTS EXHAUSTED</div>
+    document.getElementById("resultContent").innerHTML = `
+        <div style="font-weight: 900; color: var(--red); margin-bottom: 4px;">✕ ALL ATTEMPTS EXHAUSTED</div>
         <div class="reveal-box">
-            <div class="reveal-wrong">YOUR ENTRY: "<strong>${userGuess || 'No input'}</strong>"</div>
-            <div class="reveal-correct">CORRECT TARGET: <strong>${actualAnswer.toUpperCase()}</strong></div>
+            <div class="reveal-wrong">YOUR GUESS: "<strong>${userGuess || 'None'}</strong>"</div>
+            <div class="reveal-correct">ACTUAL SPECIMEN: <strong>${actualAnswer.toUpperCase()}</strong></div>
         </div>
     `;
 }
@@ -1420,7 +1437,7 @@ function updateAttempts() {
 }
 
 /* =========================================================
-   SKIP FEATURE (3 OVERALL) WITH ANSWER REVEAL
+   SKIP FEATURE: REVEALS ANIMAL & AUTO-ADVANCES
 ========================================================= */
 const skipBtn = document.getElementById("skipBtn");
 skipBtn.addEventListener("click", skipSignal);
@@ -1433,17 +1450,17 @@ function skipSignal() {
 
     audio.pause();
 
-    // Show answer when skipped so player learns what it was
+    // Animal is revealed upon skipping
     const result = document.getElementById("result");
     result.className = "result wrong";
-    result.innerHTML = `
+    document.getElementById("resultContent").innerHTML = `
         <div style="font-weight: 800; color: var(--yellow);">⚡ FREQUENCY BYPASSED (SKIPPED)</div>
         <div class="reveal-box">
-            <div class="reveal-correct">SPECIMEN WAS: <strong>${currentAnimal.name.toUpperCase()}</strong></div>
+            <div class="reveal-correct">TARGET SPECIMEN WAS: <strong>${currentAnimal.name.toUpperCase()}</strong></div>
         </div>
     `;
 
-    finishSignalStep();
+    finishSignalStep(2000); // 2 seconds display before moving to next
 }
 
 function updateSkipsUI() {
@@ -1463,17 +1480,28 @@ function updateSkipsUI() {
 }
 
 /* =========================================================
-   STEP COMPLETION & NEXT TRIGGER
+   AUTOMATIC TRANSITION TIMER
 ========================================================= */
-function finishSignalStep() {
+function finishSignalStep(delayMs = 1500) {
     document.getElementById("answerInput").disabled = true;
     document.getElementById("checkBtn").disabled = true;
-    document.getElementById("nextBtn").classList.remove("hidden");
-}
 
-document.getElementById("nextBtn").addEventListener("click", () => {
-    loadNextQueuedSignal();
-});
+    // Animate the bottom progress bar over delayMs duration
+    const progressBar = document.getElementById("autoProgressBar");
+    progressBar.style.transition = 'none';
+    progressBar.style.width = '0%';
+
+    setTimeout(() => {
+        progressBar.style.transition = `width ${delayMs}ms linear`;
+        progressBar.style.width = '100%';
+    }, 40);
+
+    // Automatically advance to the next signal
+    clearTimeout(autoAdvanceTimeout);
+    autoAdvanceTimeout = setTimeout(() => {
+        loadNextQueuedSignal();
+    }, delayMs);
+}
 
 /* =========================================================
    SUPABASE LOAD & ADMIN OPERATIONS
