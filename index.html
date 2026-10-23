@@ -1,0 +1,1696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wildlife Signal Hunt | Bio-Acoustic Recon</title>
+
+<!-- Supabase SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<!-- Tactical Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800;900&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+:root {
+    --bg: #040707;
+    --panel: rgba(10, 16, 16, 0.88);
+    --panel2: #141a1a;
+    --line: rgba(185, 255, 92, 0.18);
+    --line-subtle: rgba(255, 255, 255, 0.08);
+    --text: #f3f6f3;
+    --muted: #7d8c84;
+    --green: #b9ff5c;
+    --green-glow: rgba(185, 255, 92, 0.45);
+    --green-dark: #071200;
+    --yellow: #ffd84d;
+    --red: #ff5252;
+    --cyan: #00f2fe;
+}
+
+body {
+    min-height: 100vh;
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    position: relative;
+    overflow-x: hidden;
+}
+
+/* LIVE PARTICLE & RADAR CANVAS BACKGROUND */
+#liveCanvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Background Cyber Grid */
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: 
+        linear-gradient(rgba(185, 255, 92, 0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(185, 255, 92, 0.025) 1px, transparent 1px);
+    background-size: 45px 45px;
+    pointer-events: none;
+    z-index: 1;
+}
+
+button, input, select {
+    font-family: inherit;
+}
+
+button {
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hidden {
+    display: none !important;
+}
+
+.app {
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 30px 16px;
+    position: relative;
+    z-index: 2;
+}
+
+.screen {
+    width: 100%;
+    max-width: 680px;
+    animation: screenFade 0.35s ease forwards;
+}
+
+@keyframes screenFade {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.logo {
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--green);
+    font-weight: 800;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.logo::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 10px var(--green);
+    animation: pulse 1.8s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.6); opacity: 0.4; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.hero-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(38px, 9vw, 76px);
+    line-height: 0.9;
+    font-weight: 900;
+    letter-spacing: -2px;
+    text-transform: uppercase;
+}
+
+.hero-title span {
+    color: var(--green);
+    text-shadow: 0 0 35px var(--green-glow);
+}
+
+.subtitle {
+    margin-top: 16px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    font-size: 12px;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 26px;
+    margin-top: 26px;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7), inset 0 0 20px rgba(185, 255, 92, 0.04);
+}
+
+label {
+    display: block;
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-bottom: 9px;
+}
+
+input, select {
+    width: 100%;
+    background: #080c0c;
+    border: 1px solid var(--line-subtle);
+    color: var(--text);
+    padding: 15px 18px;
+    border-radius: 12px;
+    outline: none;
+    font-size: 15px;
+    transition: 0.25s;
+}
+
+input:focus, select:focus {
+    border-color: var(--green);
+    box-shadow: 0 0 16px rgba(185, 255, 92, 0.2);
+}
+
+.main-btn {
+    width: 100%;
+    border: 0;
+    background: var(--green);
+    color: var(--green-dark);
+    padding: 16px;
+    border-radius: 12px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 13px;
+    font-weight: 900;
+    letter-spacing: 1.5px;
+    margin-top: 16px;
+    box-shadow: 0 8px 24px rgba(185, 255, 92, 0.25);
+}
+
+.main-btn:hover {
+    transform: translateY(-2px);
+    background: #cbff7a;
+    box-shadow: 0 12px 30px rgba(185, 255, 92, 0.4);
+}
+
+.secondary-btn {
+    width: 100%;
+    border: 1px solid var(--line-subtle);
+    background: #0e1313;
+    color: var(--text);
+    padding: 14px;
+    border-radius: 12px;
+    font-weight: 800;
+    font-size: 13px;
+    letter-spacing: 1px;
+    margin-top: 12px;
+}
+
+.secondary-btn:hover {
+    border-color: var(--green);
+    color: var(--green);
+    background: #141c1c;
+}
+
+.danger-btn {
+    border: 1px solid rgba(255, 92, 92, 0.3);
+    background: rgba(255, 92, 92, 0.08);
+    color: var(--red);
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-weight: 800;
+    font-size: 11px;
+}
+
+.danger-btn:hover {
+    background: rgba(255, 92, 92, 0.2);
+}
+
+/* TOP STATUS BAR */
+.topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+}
+
+.agent {
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 700;
+}
+
+.agent strong {
+    color: var(--green);
+}
+
+.topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.score-badge, .skip-badge {
+    border: 1px solid var(--line);
+    background: #0c1111;
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-family: 'Orbitron', monospace;
+    font-weight: 900;
+    font-size: 12px;
+    letter-spacing: 1px;
+}
+
+.score-badge {
+    color: var(--green);
+}
+
+.skip-badge {
+    color: var(--yellow);
+    border-color: rgba(255, 216, 77, 0.3);
+}
+
+.signal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--line-subtle);
+    padding-bottom: 12px;
+    margin-bottom: 20px;
+}
+
+.signal-label {
+    color: var(--green);
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.signal-number {
+    color: var(--muted);
+    font-family: 'Orbitron', monospace;
+    font-size: 12px;
+}
+
+/* SOUND BEACON & AUDIO VISUALIZER */
+.sound-card {
+    text-align: center;
+    padding: 24px 10px 30px;
+    position: relative;
+}
+
+.beacon-wrap {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    margin: 0 auto 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.beacon-ring {
+    position: absolute;
+    inset: -6px;
+    border-radius: 50%;
+    border: 1px dashed rgba(185, 255, 92, 0.4);
+    animation: rotateSlow 18s linear infinite;
+}
+
+@keyframes rotateSlow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.sound-icon {
+    width: 86px;
+    height: 86px;
+    border-radius: 50%;
+    border: 2px solid var(--green);
+    background: radial-gradient(circle, rgba(185, 255, 92, 0.15) 0%, rgba(10, 14, 14, 0.95) 75%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--green);
+    font-size: 32px;
+    box-shadow: 0 0 35px rgba(185, 255, 92, 0.12);
+    transition: 0.3s;
+}
+
+.sound-icon.playing {
+    border-color: var(--cyan);
+    color: var(--cyan);
+    box-shadow: 0 0 45px rgba(0, 242, 254, 0.4);
+}
+
+.wave-bars {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 4px;
+    height: 24px;
+    margin-bottom: 14px;
+}
+
+.wave-bar {
+    width: 4px;
+    height: 6px;
+    background: rgba(185, 255, 92, 0.25);
+    border-radius: 4px;
+    transition: height 0.15s ease;
+}
+
+.wave-bars.active .wave-bar {
+    background: var(--green);
+    animation: waveBounce 0.8s ease-in-out infinite alternate;
+}
+
+.wave-bars.active .wave-bar:nth-child(2) { animation-delay: 0.1s; }
+.wave-bars.active .wave-bar:nth-child(3) { animation-delay: 0.2s; }
+.wave-bars.active .wave-bar:nth-child(4) { animation-delay: 0.35s; }
+.wave-bars.active .wave-bar:nth-child(5) { animation-delay: 0.15s; }
+
+@keyframes waveBounce {
+    0% { height: 6px; }
+    100% { height: 24px; box-shadow: 0 0 8px var(--green); }
+}
+
+.sound-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+}
+
+.sound-hint {
+    color: var(--muted);
+    font-size: 11px;
+    margin-top: 6px;
+    letter-spacing: 2px;
+    font-weight: 700;
+}
+
+.play-btn {
+    margin-top: 20px;
+    border: 1px solid var(--green);
+    background: rgba(185, 255, 92, 0.05);
+    color: var(--green);
+    padding: 13px 26px;
+    border-radius: 10px;
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 2px;
+}
+
+.play-btn:hover {
+    background: var(--green);
+    color: var(--green-dark);
+    box-shadow: 0 0 25px rgba(185, 255, 92, 0.35);
+}
+
+.attempts {
+    display: flex;
+    gap: 8px;
+    margin-top: 22px;
+}
+
+.attempt {
+    flex: 1;
+    height: 7px;
+    background: #182222;
+    border-radius: 10px;
+    transition: 0.25s;
+}
+
+.attempt.used {
+    background: var(--red);
+    box-shadow: 0 0 10px rgba(255, 82, 82, 0.5);
+}
+
+.attempt.remaining {
+    background: var(--green);
+    box-shadow: 0 0 10px rgba(185, 255, 92, 0.4);
+}
+
+.result {
+    margin-top: 16px;
+    padding: 16px;
+    border-radius: 12px;
+    font-weight: 800;
+    font-size: 13px;
+    display: none;
+    letter-spacing: 0.5px;
+}
+
+.result.correct {
+    display: block;
+    background: rgba(185, 255, 92, 0.12);
+    border: 1px solid rgba(185, 255, 92, 0.35);
+    color: var(--green);
+}
+
+.result.wrong {
+    display: block;
+    background: rgba(255, 82, 82, 0.1);
+    border: 1px solid rgba(255, 82, 82, 0.3);
+    color: var(--red);
+}
+
+.skip-btn {
+    width: 100%;
+    margin-top: 10px;
+    border: 1px dashed rgba(255, 216, 77, 0.35);
+    background: rgba(255, 216, 77, 0.04);
+    color: var(--yellow);
+    padding: 12px;
+    border-radius: 12px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+}
+
+.skip-btn:hover:not(:disabled) {
+    background: rgba(255, 216, 77, 0.12);
+    border-color: var(--yellow);
+    box-shadow: 0 0 16px rgba(255, 216, 77, 0.2);
+}
+
+.skip-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    border-style: solid;
+    border-color: var(--line-subtle);
+    color: var(--muted);
+}
+
+.difficulty-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.difficulty {
+    border: 1px solid var(--line-subtle);
+    background: #080c0c;
+    color: var(--muted);
+    border-radius: 14px;
+    padding: 20px 10px;
+    text-align: center;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 800;
+    font-size: 13px;
+    letter-spacing: 1px;
+}
+
+.difficulty:hover {
+    border-color: rgba(185, 255, 92, 0.4);
+}
+
+.difficulty.active {
+    color: var(--green-dark);
+    background: var(--green);
+    border-color: var(--green);
+    box-shadow: 0 8px 24px rgba(185, 255, 92, 0.3);
+}
+
+.difficulty small {
+    display: block;
+    margin-top: 6px;
+    opacity: 0.8;
+    font-size: 9px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 600;
+    letter-spacing: 0;
+}
+
+/* SECRET POPUP DRAWER */
+.secret-drawer {
+    display: none;
+    margin-top: 18px;
+    background: rgba(14, 22, 22, 0.98);
+    border: 2px solid var(--gold);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 25px rgba(255, 216, 77, 0.25);
+    border-radius: 14px;
+    padding: 20px;
+    animation: drawerDrop 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes drawerDrop {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ADMIN PANEL STYLING */
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+}
+
+.admin-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 26px;
+    font-weight: 900;
+    letter-spacing: -0.5px;
+}
+
+.admin-subtitle {
+    color: var(--muted);
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+.stat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.stat {
+    border: 1px solid var(--line-subtle);
+    background: #090c0c;
+    border-radius: 14px;
+    padding: 16px;
+}
+
+.stat-number {
+    font-family: 'Orbitron', monospace;
+    font-size: 28px;
+    font-weight: 900;
+    color: var(--green);
+}
+
+.stat-name {
+    color: var(--muted);
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-top: 4px;
+}
+
+.admin-form {
+    display: grid;
+    gap: 15px;
+}
+
+.library {
+    margin-top: 28px;
+}
+
+.library-filter {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    margin-bottom: 16px;
+    padding-bottom: 4px;
+}
+
+.filter-btn {
+    flex-shrink: 0;
+    background: #090c0c;
+    border: 1px solid var(--line-subtle);
+    color: var(--muted);
+    padding: 9px 16px;
+    border-radius: 10px;
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.filter-btn.active {
+    color: var(--green);
+    border-color: var(--green);
+    background: rgba(185, 255, 92, 0.08);
+}
+
+.animal-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    border: 1px solid var(--line-subtle);
+    background: #090d0d;
+    padding: 14px 18px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+}
+
+.animal-name {
+    font-weight: 800;
+    font-size: 15px;
+}
+
+.animal-level {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    margin-top: 4px;
+    text-transform: uppercase;
+    font-weight: 700;
+}
+
+.easy { color: var(--green); }
+.medium { color: var(--yellow); }
+.hard { color: var(--red); }
+
+.message {
+    margin-top: 12px;
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 600;
+}
+
+.logout {
+    border: 1px solid var(--line-subtle);
+    background: transparent;
+    color: var(--muted);
+    padding: 10px 16px;
+    border-radius: 10px;
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.logout:hover {
+    color: var(--red);
+    border-color: var(--red);
+}
+
+.empty {
+    color: var(--muted);
+    text-align: center;
+    padding: 30px;
+    border: 1px dashed var(--line-subtle);
+    border-radius: 14px;
+    font-size: 13px;
+}
+
+@media(max-width:540px) {
+    .app { padding: 20px 12px; }
+    .hero-title { letter-spacing: -1.5px; }
+    .panel { padding: 18px; }
+    .stat-grid { gap: 8px; }
+    .stat { padding: 12px; }
+    .stat-number { font-size: 22px; }
+    .admin-title { font-size: 22px; }
+}
+</style>
+</head>
+
+<body>
+
+<!-- LIVE RADAR PARTICLES CANVAS -->
+<canvas id="liveCanvas"></canvas>
+
+<div class="app">
+
+<!-- =====================================================
+     PARTICIPANT NAME SCREEN
+===================================================== -->
+<section id="nameScreen" class="screen">
+    <div class="logo">ZOOLOGY RECON // WILDLIFE ACOUSTICS</div>
+
+    <h1 class="hero-title">
+        WILDLIFE<br>
+        <span>SIGNAL</span><br>
+        HUNT
+    </h1>
+
+    <p class="subtitle">
+        Identify the acoustic frequency. Secure the wild.
+    </p>
+
+    <div class="panel">
+        <label for="nameInput">Field Agent Callsign / Handle</label>
+        <input
+            id="nameInput"
+            type="text"
+            autocomplete="off"
+        >
+
+        <button type="button" id="startBtn" class="main-btn">
+            ENTER THE FIELD
+        </button>
+
+        <div id="entranceFeedback" class="message" style="color: var(--red);"></div>
+
+        <!-- SECRET ADMIN CIPHER DRAWER (Reveals when 'zoo' is entered) -->
+        <div id="secretDrawer" class="secret-drawer">
+            <label for="adminCipherInput" style="color: var(--gold); font-size: 10px;">
+                🔒 SECURITY OVERRIDE // CLEARANCE REQUIRED
+            </label>
+            <input
+                id="adminCipherInput"
+                type="password"
+                autocomplete="off"
+                style="margin-top: 6px; margin-bottom: 12px;"
+            >
+            <div style="display: flex; gap: 10px;">
+                <button type="button" id="unlockAdminBtn" class="main-btn" style="flex: 1; margin: 0; background: var(--gold); color: #080c00;">
+                    ACCESS PORTAL
+                </button>
+                <button type="button" id="cancelSecretBtn" class="secondary-btn" style="margin: 0; width: auto; padding: 12px 18px;">
+                    CANCEL
+                </button>
+            </div>
+            <div id="cipherMessage" class="message" style="color: var(--red); font-size: 11px;"></div>
+        </div>
+    </div>
+</section>
+
+<!-- =====================================================
+     DIFFICULTY SCREEN
+===================================================== -->
+<section id="difficultyScreen" class="screen hidden">
+    <div class="logo">FIELD SECTOR DEPLOYMENT</div>
+
+    <h1 class="hero-title">
+        CHOOSE<br>
+        YOUR <span>ZONE</span>
+    </h1>
+
+    <p class="subtitle">
+        Calibrate bio-acoustic detection sensitivity:
+    </p>
+
+    <div class="panel">
+        <div class="difficulty-grid">
+            <button class="difficulty" data-level="easy">
+                EASY
+                <small>Common vocalizations</small>
+            </button>
+
+            <button class="difficulty" data-level="medium">
+                MEDIUM
+                <small>Subtle territory calls</small>
+            </button>
+
+            <button class="difficulty" data-level="hard">
+                HARD
+                <small>Cryptic & nocturnal</small>
+            </button>
+        </div>
+
+        <button type="button" id="beginLevelBtn" class="main-btn">
+            BEGIN SIGNAL HUNT
+        </button>
+    </div>
+</section>
+
+<!-- =====================================================
+     GAME SCREEN
+===================================================== -->
+<section id="gameScreen" class="screen hidden">
+    <div class="topbar">
+        <div class="agent">
+            AGENT: <strong id="agentName"></strong>
+        </div>
+
+        <div class="topbar-right">
+            <div class="skip-badge" id="skipsBadge">
+                SKIPS: <span id="skipsLeftCount">3</span>/3
+            </div>
+            <div class="score-badge">
+                <span id="score">0</span> PTS
+            </div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="signal-header">
+            <span class="signal-label">ACOUSTIC BEACON</span>
+            <span id="signalNumber" class="signal-number">01</span>
+        </div>
+
+        <div class="sound-card">
+            <div class="beacon-wrap">
+                <div class="beacon-ring"></div>
+                <div class="sound-icon" id="beaconIcon">
+                    ◉
+                </div>
+            </div>
+
+            <!-- Animated frequency wave bars -->
+            <div class="wave-bars" id="waveBars">
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+            </div>
+
+            <div class="sound-title">
+                INTERCEPTED TRANSMISSION
+            </div>
+
+            <div id="difficultyDisplay" class="sound-hint">
+                SECTOR // EASY
+            </div>
+
+            <button type="button" id="playBtn" class="play-btn">
+                ▶ TRANSMIT SIGNAL
+            </button>
+
+            <audio id="audio"></audio>
+        </div>
+
+        <label for="answerInput">Target Species Identification</label>
+        <input
+            id="answerInput"
+            type="text"
+            autocomplete="off"
+        >
+
+        <button type="button" id="checkBtn" class="main-btn">
+            ANALYZE SIGNAL
+        </button>
+
+        <button type="button" id="skipBtn" class="skip-btn">
+            ⚡ REROUTE FREQUENCY (SKIP) — <span id="skipBtnCount">3</span> REMAINING
+        </button>
+
+        <div id="attemptBars" class="attempts">
+            <div class="attempt remaining"></div>
+            <div class="attempt remaining"></div>
+            <div class="attempt remaining"></div>
+        </div>
+
+        <div id="attemptText" class="message">
+            3 acoustic analysis attempts remaining
+        </div>
+
+        <div id="result" class="result"></div>
+
+        <button type="button" id="nextBtn" class="secondary-btn hidden">
+            NEXT TRANSMISSION ➔
+        </button>
+    </div>
+</section>
+
+<!-- =====================================================
+     ADMIN DASHBOARD
+===================================================== -->
+<section id="adminScreen" class="screen hidden">
+    <div class="admin-header">
+        <div>
+            <div class="logo" style="margin-bottom: 6px;">ZOO // COMMAND CORE</div>
+            <div class="admin-title">SIGNAL REPOSITORY</div>
+            <div class="admin-subtitle">Deploy and calibrate wildlife audio frequencies</div>
+        </div>
+
+        <button type="button" id="logoutBtn" class="logout">
+            SURFACE EXIT
+        </button>
+    </div>
+
+    <!-- STATS -->
+    <div class="stat-grid">
+        <div class="stat">
+            <div id="totalCount" class="stat-number">0</div>
+            <div class="stat-name">Total Signals</div>
+        </div>
+        <div class="stat">
+            <div id="easyCount" class="stat-number">0</div>
+            <div class="stat-name">Easy Tier</div>
+        </div>
+        <div class="stat">
+            <div id="hardCount" class="stat-number">0</div>
+            <div class="stat-name">Hard Tier</div>
+        </div>
+    </div>
+
+    <!-- ADD SOUND -->
+    <div class="panel">
+        <div class="signal-label">UPLOAD NEW ACOUSTIC SPECIMEN</div>
+
+        <div class="admin-form" style="margin-top: 18px;">
+            <div>
+                <label for="animalName">Species Common Name</label>
+                <input
+                    id="animalName"
+                    type="text"
+                >
+            </div>
+
+            <div>
+                <label for="animalDifficulty">Frequency Difficulty</label>
+                <select id="animalDifficulty">
+                    <option value="easy">Easy (Recognizable)</option>
+                    <option value="medium">Medium (Moderate Ambiguity)</option>
+                    <option value="hard">Hard (Advanced Specialist)</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="animalFile">Audio File (MP3 Format, Max 10MB)</label>
+                <input
+                    id="animalFile"
+                    type="file"
+                    accept="audio/mpeg,audio/mp3,.mp3"
+                >
+            </div>
+
+            <button type="button" id="uploadBtn" class="main-btn">
+                TRANSMIT TO CLOUD DATABASE
+            </button>
+
+            <div id="uploadMessage" class="message"></div>
+        </div>
+    </div>
+
+    <!-- LIBRARY -->
+    <div class="library">
+        <div class="signal-label">FREQUENCY REGISTRY</div>
+
+        <div class="library-filter" style="margin-top: 14px;">
+            <button type="button" class="filter-btn active" data-filter="all">ALL</button>
+            <button type="button" class="filter-btn" data-filter="easy">EASY</button>
+            <button type="button" class="filter-btn" data-filter="medium">MEDIUM</button>
+            <button type="button" class="filter-btn" data-filter="hard">HARD</button>
+        </div>
+
+        <div id="libraryList"></div>
+    </div>
+</section>
+
+</div>
+
+<script>
+/* =========================================================
+   LIVE RADAR & BIO-ACOUSTIC CANVAS BACKGROUND
+========================================================= */
+const canvas = document.getElementById("liveCanvas");
+const ctx = canvas.getContext("2d");
+
+let w, h;
+function resizeCanvas() {
+    w = canvas.width = window.innerWidth;
+    h = canvas.height = window.innerHeight;
+}
+window.addEventListener("resize", resizeCanvas);
+resizeCanvas();
+
+const particles = [];
+const PARTICLE_COUNT = 45;
+
+for (let i = 0; i < PARTICLE_COUNT; i++) {
+    particles.push({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        vx: (Math.random() - 0.5) * 0.45,
+        vy: (Math.random() - 0.5) * 0.45,
+        radius: Math.random() * 1.8 + 1,
+        alpha: Math.random() * 0.5 + 0.2
+    });
+}
+
+let radarAngle = 0;
+
+function drawLiveCanvas() {
+    ctx.clearRect(0, 0, w, h);
+
+    // Subtle center sonar origin
+    const cx = w * 0.85;
+    const cy = h * 0.15;
+    const radarRadius = Math.max(w, h) * 0.75;
+
+    // Sweeping Radar Cone
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, radarRadius, radarAngle, radarAngle + 0.35);
+    ctx.closePath();
+    const grad = ctx.createRadialGradient(cx, cy, 10, cx, cy, radarRadius);
+    grad.addColorStop(0, "rgba(185, 255, 92, 0.08)");
+    grad.addColorStop(1, "rgba(185, 255, 92, 0)");
+    ctx.fillStyle = grad;
+    ctx.fill();
+    ctx.restore();
+
+    radarAngle += 0.007;
+
+    // Floating particles & linkages
+    for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+
+        if (p.x < 0) p.x = w;
+        if (p.x > w) p.x = 0;
+        if (p.y < 0) p.y = h;
+        if (p.y > h) p.y = 0;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(185, 255, 92, ${p.alpha})`;
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = "rgba(185, 255, 92, 0.4)";
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        for (let j = i + 1; j < particles.length; j++) {
+            const p2 = particles[j];
+            const dist = Math.hypot(p.x - p2.x, p.y - p2.y);
+            if (dist < 110) {
+                ctx.beginPath();
+                ctx.moveTo(p.x, p.y);
+                ctx.lineTo(p2.x, p2.y);
+                ctx.strokeStyle = `rgba(185, 255, 92, ${0.12 * (1 - dist / 110)})`;
+                ctx.lineWidth = 0.7;
+                ctx.stroke();
+            }
+        }
+    }
+
+    requestAnimationFrame(drawLiveCanvas);
+}
+drawLiveCanvas();
+
+/* =========================================================
+   SUPABASE CONFIG
+========================================================= */
+const SUPABASE_URL = "https://dpvfngcsdydatlnrkvup.supabase.co";
+const SUPABASE_KEY = "sb_publishable_FknM8sfewItdaPpf725Cjg_mb3i5gBf";
+
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+/* =========================================================
+   GLOBAL GAME STATE
+========================================================= */
+let participantName = "";
+let selectedDifficulty = null;
+let currentAnimal = null;
+let previousAnimalId = null;
+let attempts = 0;
+let score = 0;
+let signalNumber = 0;
+let skipsRemaining = 3; // 3 SKIPS MAXIMUM OVERALL
+let animals = [];
+let adminAnimals = [];
+let currentFilter = "all";
+
+/* =========================================================
+   SCREEN CONTROL
+========================================================= */
+const screens = [
+    "nameScreen",
+    "difficultyScreen",
+    "gameScreen",
+    "adminScreen"
+];
+
+function showScreen(id) {
+    screens.forEach(screen => {
+        const el = document.getElementById(screen);
+        if (el) el.classList.add("hidden");
+    });
+    const target = document.getElementById(id);
+    if (target) target.classList.remove("hidden");
+}
+
+/* =========================================================
+   NAME SCREEN & SECRET ADMIN PROTOCOL
+   User = 'zoo' | Pass = 'hunt'
+========================================================= */
+const nameInput = document.getElementById("nameInput");
+const startBtn = document.getElementById("startBtn");
+const secretDrawer = document.getElementById("secretDrawer");
+const adminCipherInput = document.getElementById("adminCipherInput");
+const unlockAdminBtn = document.getElementById("unlockAdminBtn");
+const cancelSecretBtn = document.getElementById("cancelSecretBtn");
+const entranceFeedback = document.getElementById("entranceFeedback");
+const cipherMessage = document.getElementById("cipherMessage");
+
+startBtn.addEventListener("click", startEntry);
+nameInput.addEventListener("keydown", function(e) {
+    if (e.key === "Enter") startEntry();
+});
+
+adminCipherInput.addEventListener("keydown", function(e) {
+    if (e.key === "Enter") verifyAdminPass();
+});
+
+unlockAdminBtn.addEventListener("click", verifyAdminPass);
+
+cancelSecretBtn.addEventListener("click", function() {
+    secretDrawer.style.display = "none";
+    cipherMessage.textContent = "";
+});
+
+function startEntry() {
+    entranceFeedback.textContent = "";
+    const val = nameInput.value.trim();
+
+    if (!val) {
+        entranceFeedback.textContent = "Identify yourself with a field callsign.";
+        return;
+    }
+
+    /* Secret Admin Trigger: If callsign is 'zoo', drop down the cipher box */
+    if (val.toLowerCase() === "zoo") {
+        secretDrawer.style.display = "block";
+        adminCipherInput.value = "";
+        adminCipherInput.focus();
+        return;
+    }
+
+    secretDrawer.style.display = "none";
+    participantName = val;
+    document.getElementById("agentName").textContent = participantName;
+    showScreen("difficultyScreen");
+}
+
+/* Verify secret cipher: must match 'hunt' */
+async function verifyAdminPass() {
+    cipherMessage.textContent = "";
+    const cipher = adminCipherInput.value.trim();
+
+    if (cipher.toLowerCase() === "hunt") {
+        secretDrawer.style.display = "none";
+        nameInput.value = "";
+        adminCipherInput.value = "";
+        showScreen("adminScreen");
+        await loadAdminLibrary();
+    } else {
+        cipherMessage.textContent = "INVALID CIPHER SEQUENCE // ACCESS DENIED";
+    }
+}
+
+/* =========================================================
+   DIFFICULTY SELECTION
+========================================================= */
+document.querySelectorAll(".difficulty").forEach(button => {
+    button.addEventListener("click", function() {
+        document.querySelectorAll(".difficulty").forEach(b => b.classList.remove("active"));
+        this.classList.add("active");
+        selectedDifficulty = this.dataset.level;
+    });
+});
+
+document.getElementById("beginLevelBtn").addEventListener("click", async function() {
+    if (!selectedDifficulty) {
+        alert("Select an acoustic detection zone.");
+        return;
+    }
+
+    this.textContent = "CALIBRATING SENSORS...";
+    await loadAnimals();
+    this.textContent = "BEGIN SIGNAL HUNT";
+
+    const available = animals.filter(a => a.difficulty === selectedDifficulty);
+
+    if (available.length === 0) {
+        alert("No acoustic signals catalogued in this zone yet. Consult Command Administration.");
+        return;
+    }
+
+    score = 0;
+    signalNumber = 0;
+    skipsRemaining = 3;
+    previousAnimalId = null;
+
+    document.getElementById("score").textContent = score;
+    updateSkipsUI();
+
+    showScreen("gameScreen");
+    newSignal();
+});
+
+/* =========================================================
+   LOAD ANIMALS (CLOUD DB)
+========================================================= */
+async function loadAnimals() {
+    const { data, error } = await supabaseClient
+        .from("animals")
+        .select("*");
+
+    if (error) {
+        console.error(error);
+        alert("Failed to intercept signal repository.");
+        return;
+    }
+
+    animals = data || [];
+}
+
+/* =========================================================
+   NEW / RANDOM SIGNAL
+========================================================= */
+function newSignal() {
+    const available = animals.filter(animal => 
+        animal.difficulty === selectedDifficulty && 
+        animal.id !== previousAnimalId
+    );
+
+    const pool = available.length > 0 
+        ? available 
+        : animals.filter(animal => animal.difficulty === selectedDifficulty);
+
+    if (pool.length === 0) {
+        alert("No signals available in this sector.");
+        return;
+    }
+
+    currentAnimal = pool[Math.floor(Math.random() * pool.length)];
+    previousAnimalId = currentAnimal.id;
+    attempts = 0;
+    signalNumber++;
+
+    document.getElementById("signalNumber").textContent = String(signalNumber).padStart(2, "0");
+    document.getElementById("difficultyDisplay").textContent = "SECTOR // " + currentAnimal.difficulty.toUpperCase();
+
+    const answerInput = document.getElementById("answerInput");
+    answerInput.value = "";
+    answerInput.disabled = false;
+
+    document.getElementById("checkBtn").disabled = false;
+    document.getElementById("nextBtn").classList.add("hidden");
+
+    const result = document.getElementById("result");
+    result.className = "result";
+    result.textContent = "";
+
+    updateAttempts();
+    resetAudioVisualizer();
+
+    const audio = document.getElementById("audio");
+    audio.pause();
+    audio.currentTime = 0;
+    audio.src = currentAnimal.file_url;
+}
+
+/* =========================================================
+   AUDIO REPRODUCTION & LIVE VISUALIZER
+========================================================= */
+const playBtn = document.getElementById("playBtn");
+const beaconIcon = document.getElementById("beaconIcon");
+const waveBars = document.getElementById("waveBars");
+const audio = document.getElementById("audio");
+
+playBtn.addEventListener("click", playSound);
+
+function playSound() {
+    if (!currentAnimal) return;
+
+    audio.currentTime = 0;
+    audio.play()
+        .then(() => {
+            beaconIcon.classList.add("playing");
+            waveBars.classList.add("active");
+            playBtn.textContent = "◼ TRANSMITTING...";
+        })
+        .catch(error => {
+            console.error(error);
+            alert("Acoustic link unstable. Tap transmit again.");
+        });
+}
+
+audio.addEventListener("ended", resetAudioVisualizer);
+audio.addEventListener("pause", resetAudioVisualizer);
+
+function resetAudioVisualizer() {
+    beaconIcon.classList.remove("playing");
+    waveBars.classList.remove("active");
+    playBtn.textContent = "▶ TRANSMIT SIGNAL";
+}
+
+/* =========================================================
+   ANSWER VERIFICATION
+========================================================= */
+document.getElementById("checkBtn").addEventListener("click", checkAnswer);
+document.getElementById("answerInput").addEventListener("keydown", function(e) {
+    if (e.key === "Enter") checkAnswer();
+});
+
+function cleanAnswer(value) {
+    return value
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9 ]/g, "")
+        .replace(/\s+/g, " ");
+}
+
+function checkAnswer() {
+    if (!currentAnimal) return;
+
+    const input = document.getElementById("answerInput").value;
+    const answer = cleanAnswer(input);
+
+    if (!answer) return;
+
+    attempts++;
+    const correct = cleanAnswer(currentAnimal.name);
+
+    if (answer === correct) {
+        score++;
+        document.getElementById("score").textContent = score;
+        showResult("✓ SIGNAL IDENTIFIED: " + currentAnimal.name.toUpperCase() + " (+1 PT)", true);
+        finishSignal();
+        return;
+    }
+
+    if (attempts < 3) {
+        showResult("✕ INACCURATE MATCH — RE-EVALUATE FREQUENCY", false);
+        updateAttempts();
+        document.getElementById("answerInput").select();
+        return;
+    }
+
+    showResult("✕ SIGNAL CORRUPTED — TARGET WAS: " + currentAnimal.name.toUpperCase(), false);
+    finishSignal();
+}
+
+function showResult(text, correct) {
+    const result = document.getElementById("result");
+    result.textContent = text;
+    result.className = correct ? "result correct" : "result wrong";
+}
+
+/* =========================================================
+   ATTEMPTS COUNTER
+========================================================= */
+function updateAttempts() {
+    const bars = document.querySelectorAll(".attempt");
+    bars.forEach((bar, index) => {
+        bar.classList.remove("used", "remaining");
+        if (index < attempts) {
+            bar.classList.add("used");
+        } else {
+            bar.classList.add("remaining");
+        }
+    });
+
+    const remaining = 3 - attempts;
+    document.getElementById("attemptText").textContent =
+        remaining + (remaining === 1 ? " attempt remaining" : " attempts remaining");
+}
+
+/* =========================================================
+   SKIP FEATURE (3 OVERALL MAXIMUM)
+========================================================= */
+const skipBtn = document.getElementById("skipBtn");
+skipBtn.addEventListener("click", skipSignal);
+
+function skipSignal() {
+    if (skipsRemaining <= 0) return;
+
+    skipsRemaining--;
+    updateSkipsUI();
+
+    showResult("⚡ SIGNAL BYPASS ENGAGED — REROUTING FREQUENCY...", false);
+
+    audio.pause();
+    setTimeout(() => {
+        newSignal();
+    }, 450);
+}
+
+function updateSkipsUI() {
+    const skipCountBadge = document.getElementById("skipsLeftCount");
+    const skipBtnCount = document.getElementById("skipBtnCount");
+
+    if (skipCountBadge) skipCountBadge.textContent = skipsRemaining;
+    if (skipBtnCount) skipBtnCount.textContent = skipsRemaining;
+
+    if (skipsRemaining <= 0) {
+        skipBtn.disabled = true;
+        skipBtn.textContent = "⚡ ALL 3 SKIPS EXHAUSTED";
+    } else {
+        skipBtn.disabled = false;
+        skipBtn.innerHTML = `⚡ REROUTE FREQUENCY (SKIP) — <span>${skipsRemaining}</span> REMAINING`;
+    }
+}
+
+/* =========================================================
+   FINISH SIGNAL & NEXT
+========================================================= */
+function finishSignal() {
+    document.getElementById("answerInput").disabled = true;
+    document.getElementById("checkBtn").disabled = true;
+    document.getElementById("nextBtn").classList.remove("hidden");
+}
+
+document.getElementById("nextBtn").addEventListener("click", newSignal);
+
+/* =========================================================
+   ADMIN LOGOUT / DISCONNECT
+========================================================= */
+document.getElementById("logoutBtn").addEventListener("click", function() {
+    showScreen("nameScreen");
+    nameInput.value = "";
+    adminCipherInput.value = "";
+    secretDrawer.style.display = "none";
+});
+
+/* =========================================================
+   ADMIN LIBRARY & STATS
+========================================================= */
+async function loadAdminLibrary() {
+    const { data, error } = await supabaseClient
+        .from("animals")
+        .select("*")
+        .order("name");
+
+    if (error) {
+        console.error(error);
+        return;
+    }
+
+    adminAnimals = data || [];
+    updateStats();
+    renderLibrary();
+}
+
+function updateStats() {
+    const total = adminAnimals.length;
+    const easy = adminAnimals.filter(a => a.difficulty === "easy").length;
+    const hard = adminAnimals.filter(a => a.difficulty === "hard").length;
+
+    document.getElementById("totalCount").textContent = total;
+    document.getElementById("easyCount").textContent = easy;
+    document.getElementById("hardCount").textContent = hard;
+}
+
+function renderLibrary() {
+    const container = document.getElementById("libraryList");
+    const filtered = currentFilter === "all"
+        ? adminAnimals
+        : adminAnimals.filter(a => a.difficulty === currentFilter);
+
+    if (filtered.length === 0) {
+        container.innerHTML = '<div class="empty">No acoustic records discovered for this filter.</div>';
+        return;
+    }
+
+    container.innerHTML = "";
+
+    filtered.forEach(animal => {
+        const row = document.createElement("div");
+        row.className = "animal-row";
+
+        const info = document.createElement("div");
+
+        const name = document.createElement("div");
+        name.className = "animal-name";
+        name.textContent = animal.name;
+
+        const level = document.createElement("div");
+        level.className = "animal-level " + animal.difficulty;
+        level.textContent = "SECTOR // " + animal.difficulty.toUpperCase();
+
+        info.appendChild(name);
+        info.appendChild(level);
+
+        const controls = document.createElement("div");
+        controls.style.display = "flex";
+        controls.style.gap = "8px";
+
+        const play = document.createElement("button");
+        play.className = "filter-btn";
+        play.textContent = "▶";
+        play.onclick = () => {
+            const tempAudio = new Audio(animal.file_url);
+            tempAudio.play();
+        };
+
+        const remove = document.createElement("button");
+        remove.className = "danger-btn";
+        remove.textContent = "PURGE";
+        remove.onclick = () => deleteAnimal(animal);
+
+        controls.appendChild(play);
+        controls.appendChild(remove);
+
+        row.appendChild(info);
+        row.appendChild(controls);
+
+        container.appendChild(row);
+    });
+}
+
+document.querySelectorAll(".filter-btn").forEach(button => {
+    button.addEventListener("click", function() {
+        if (!this.dataset.filter) return;
+        document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+        this.classList.add("active");
+        currentFilter = this.dataset.filter;
+        renderLibrary();
+    });
+});
+
+/* =========================================================
+   UPLOAD SOUND SPECIMEN
+========================================================= */
+document.getElementById("uploadBtn").addEventListener("click", uploadAnimal);
+
+async function uploadAnimal() {
+    const name = document.getElementById("animalName").value.trim();
+    const difficulty = document.getElementById("animalDifficulty").value;
+    const file = document.getElementById("animalFile").files[0];
+    const message = document.getElementById("uploadMessage");
+
+    if (!name) {
+        message.textContent = "Enter a species designation.";
+        return;
+    }
+
+    if (!file) {
+        message.textContent = "Select an MP3 transmission file.";
+        return;
+    }
+
+    if (!file.name.toLowerCase().endsWith(".mp3")) {
+        message.textContent = "Only MP3 audio frequencies permitted.";
+        return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+        message.textContent = "Signal file must remain below 10 MB.";
+        return;
+    }
+
+    message.textContent = "Encoding & deploying signal to cloud storage...";
+
+    const safeName = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    const uniqueName = Date.now() + "-" + safeName + ".mp3";
+    const path = difficulty + "/" + uniqueName;
+
+    const { data: uploadData, error: uploadError } = await supabaseClient
+        .storage
+        .from("animal-sounds")
+        .upload(path, file, {
+            contentType: "audio/mpeg",
+            cacheControl: "3600",
+            upsert: false
+        });
+
+    if (uploadError) {
+        console.error(uploadError);
+        message.textContent = "Storage error: " + uploadError.message;
+        return;
+    }
+
+    const { data: publicData } = supabaseClient
+        .storage
+        .from("animal-sounds")
+        .getPublicUrl(uploadData.path);
+
+    const fileUrl = publicData.publicUrl;
+
+    const { error: dbError } = await supabaseClient
+        .from("animals")
+        .insert({
+            name: name,
+            file_url: fileUrl,
+            difficulty: difficulty
+        });
+
+    if (dbError) {
+        console.error(dbError);
+        await supabaseClient.storage.from("animal-sounds").remove([uploadData.path]);
+        message.textContent = "Database write fault: " + dbError.message;
+        return;
+    }
+
+    message.textContent = "✓ SPECIMEN DEPLOYED TO REGISTRY";
+    document.getElementById("animalName").value = "";
+    document.getElementById("animalFile").value = "";
+
+    await loadAdminLibrary();
+}
+
+/* =========================================================
+   PURGE ANIMAL
+========================================================= */
+async function deleteAnimal(animal) {
+    const confirmed = confirm("Purge frequency '" + animal.name + "' from the live reconnaissance grid?");
+    if (!confirmed) return;
+
+    let storagePath = null;
+    try {
+        const marker = "/storage/v1/object/public/animal-sounds/";
+        const index = animal.file_url.indexOf(marker);
+        if (index !== -1) {
+            storagePath = decodeURIComponent(animal.file_url.substring(index + marker.length));
+        }
+    } catch (error) {
+        console.error(error);
+    }
+
+    const { error: dbError } = await supabaseClient
+        .from("animals")
+        .delete()
+        .eq("id", animal.id);
+
+    if (dbError) {
+        alert("Failed to delete specimen: " + dbError.message);
+        return;
+    }
+
+    if (storagePath) {
+        await supabaseClient.storage.from("animal-sounds").remove([storagePath]);
+    }
+
+    await loadAdminLibrary();
+}
+
+/* =========================================================
+   INITIALIZE
+========================================================= */
+showScreen("nameScreen");
+</script>
+
+</body>
+</html>
