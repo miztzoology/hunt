@@ -94,7 +94,7 @@ button {
 
 .screen {
     width: 100%;
-    max-width: 680px;
+    max-width: 720px;
     animation: screenFade 0.35s ease forwards;
 }
 
@@ -245,6 +245,20 @@ input:focus, select:focus {
 
 .danger-btn:hover {
     background: rgba(255, 92, 92, 0.2);
+}
+
+.edit-btn {
+    border: 1px solid rgba(255, 216, 77, 0.3);
+    background: rgba(255, 216, 77, 0.08);
+    color: var(--yellow);
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-weight: 800;
+    font-size: 11px;
+}
+
+.edit-btn:hover {
+    background: rgba(255, 216, 77, 0.2);
 }
 
 /* TOP STATUS BAR */
@@ -552,7 +566,7 @@ input:focus, select:focus {
     color: var(--muted);
 }
 
-/* SMOOTH SECTOR PROMOTION BANNER (NO POPUP ALERT) */
+/* SMOOTH SECTOR PROMOTION BANNER */
 .promotion-banner {
     position: absolute;
     inset: 0;
@@ -880,7 +894,7 @@ input:focus, select:focus {
     </div>
 
     <div class="panel">
-        <!-- SMOOTH LEVEL UP BANNER (DROPS IN INSTEAD OF BROWSER POPUP) -->
+        <!-- SMOOTH LEVEL UP BANNER -->
         <div id="promotionBanner" class="promotion-banner hidden">
             <div style="font-size: 2.6rem; margin-bottom: 10px;">⚡</div>
             <div class="promo-title" id="promoTitle">SECTOR ADVANCEMENT</div>
@@ -1034,7 +1048,7 @@ input:focus, select:focus {
         <div>
             <div class="logo" style="margin-bottom: 6px;">ZOO // COMMAND CORE</div>
             <div class="admin-title">SIGNAL REPOSITORY</div>
-            <div class="admin-subtitle">Deploy and calibrate wildlife audio frequencies</div>
+            <div class="admin-subtitle">Deploy, calibrate wildlife sounds & manage scores</div>
         </div>
 
         <button type="button" id="logoutBtn" class="logout">
@@ -1056,6 +1070,29 @@ input:focus, select:focus {
             <div id="hardCount" class="stat-number">0</div>
             <div class="stat-name">Hard Tier</div>
         </div>
+    </div>
+
+    <!-- LEADERBOARD MANAGEMENT IN ADMIN -->
+    <div class="panel" style="border-color: rgba(255, 216, 77, 0.35);">
+        <div class="signal-label" style="color: var(--yellow);">LEADERBOARD INTELLIGENCE REGISTRY</div>
+        <p style="color: var(--muted); font-size: 12px; margin-top: 4px; margin-bottom: 16px;">
+            Edit player names, modify scores, remove individual entries, or inject scores manually.
+        </p>
+
+        <!-- Manual Add to Leaderboard -->
+        <div style="display: grid; grid-template-columns: 2fr 1fr auto; gap: 10px; margin-bottom: 20px;">
+            <input type="text" id="manualPlayerName" placeholder="Agent Callsign">
+            <input type="number" id="manualPlayerScore" placeholder="Points">
+            <button type="button" class="main-btn" style="margin: 0; padding: 12px 18px; font-size: 11px;" onclick="adminAddLeaderboardEntry()">
+                + ADD SCORE
+            </button>
+        </div>
+
+        <div id="adminLeaderboardList" style="max-height: 280px; overflow-y: auto; padding-right: 4px;"></div>
+
+        <button type="button" class="danger-btn" style="width: 100%; margin-top: 15px; padding: 12px;" onclick="adminWipeLeaderboard()">
+            ⚠ PURGE ENTIRE LEADERBOARD
+        </button>
     </div>
 
     <!-- ADD SOUND -->
@@ -1097,7 +1134,7 @@ input:focus, select:focus {
         </div>
     </div>
 
-    <!-- LIBRARY -->
+    <!-- SOUND LIBRARY -->
     <div class="library">
         <div class="signal-label">FREQUENCY REGISTRY</div>
 
@@ -1229,6 +1266,7 @@ let autoAdvanceTimeout = null;
 
 let allAnimals = [];
 let adminAnimals = [];
+let adminLeaderboard = [];
 let currentFilter = "all";
 
 /* =========================================================
@@ -1318,6 +1356,7 @@ async function verifyAdminPass() {
         adminCipherInput.value = "";
         showScreen("adminScreen");
         await loadAdminLibrary();
+        await loadAdminLeaderboard();
     } else {
         cipherMessage.textContent = "INVALID CIPHER SEQUENCE // ACCESS DENIED";
     }
@@ -1370,7 +1409,6 @@ function loadNextQueuedSignal() {
     clearTimeout(autoAdvanceTimeout);
 
     if (currentTierQueueIndex >= currentTierQueue.length) {
-        // SMOOTH SECTOR ADVANCEMENT: Trigger in-game HUD banner without browser popup
         if (currentTierIndex < TIERS.length - 1) {
             currentTierIndex++;
             showPromotionBanner(TIERS[currentTierIndex].toUpperCase(), () => {
@@ -1416,7 +1454,6 @@ function loadNextQueuedSignal() {
     audio.src = currentAnimal.file_url;
 }
 
-/* In-game non-blocking level promotion */
 function showPromotionBanner(nextTierName, callback) {
     const banner = document.getElementById("promotionBanner");
     const promoTitle = document.getElementById("promoTitle");
@@ -1441,7 +1478,6 @@ async function finishExpedition() {
     document.getElementById("finalScoreDisplay").textContent = score;
     document.getElementById("finalAgentName").textContent = participantName;
 
-    // Record high score to Supabase Leaderboard
     await saveScoreToLeaderboard(participantName, score);
 
     showScreen("completeScreen");
@@ -1519,19 +1555,17 @@ function checkAnswer() {
         score++;
         document.getElementById("score").textContent = score;
         showResultCorrect(`✓ SIGNAL IDENTIFIED: <strong>${currentAnimal.name.toUpperCase()}</strong> (+1 PT)`);
-        finishSignalStep(1500); // 1.5 seconds delay then moves automatically
+        finishSignalStep(1500);
         return;
     }
 
     if (attempts < 3) {
-        // KEEP ANIMAL NAME HIDDEN: only report wrong guess and attempts left
         showResultRetry(`✕ MISIDENTIFIED ("${lastEnteredAnswer}") — TRY AGAIN`);
         updateAttempts();
         document.getElementById("answerInput").select();
         return;
     }
 
-    // ALL ATTEMPTS LOST: Reveal species name and auto-advance after 2 seconds
     showResultWrong(lastEnteredAnswer, currentAnimal.name);
     finishSignalStep(2000); 
 }
@@ -1560,9 +1594,6 @@ function showResultWrong(userGuess, actualAnswer) {
     `;
 }
 
-/* =========================================================
-   ATTEMPTS COUNTER
-========================================================= */
 function updateAttempts() {
     const bars = document.querySelectorAll(".attempt");
     bars.forEach((bar, index) => {
@@ -1580,7 +1611,7 @@ function updateAttempts() {
 }
 
 /* =========================================================
-   SKIP FEATURE: REVEALS ANIMAL & AUTO-ADVANCES
+   SKIP FEATURE
 ========================================================= */
 const skipBtn = document.getElementById("skipBtn");
 skipBtn.addEventListener("click", skipSignal);
@@ -1621,9 +1652,6 @@ function updateSkipsUI() {
     }
 }
 
-/* =========================================================
-   AUTOMATIC TRANSITION TIMER
-========================================================= */
 function finishSignalStep(delayMs = 1500) {
     document.getElementById("answerInput").disabled = true;
     document.getElementById("checkBtn").disabled = true;
@@ -1644,7 +1672,7 @@ function finishSignalStep(delayMs = 1500) {
 }
 
 /* =========================================================
-   LEADERBOARD OPERATIONS
+   LEADERBOARD (USER VIEW & RECORDING)
 ========================================================= */
 async function saveScoreToLeaderboard(name, finalScore) {
     if (!name || finalScore <= 0) return;
@@ -1702,7 +1730,160 @@ async function showLeaderboardScreen() {
 }
 
 /* =========================================================
-   SUPABASE LOAD & ADMIN OPERATIONS
+   ADMIN LEADERBOARD EDITING ENGINE
+========================================================= */
+async function loadAdminLeaderboard() {
+    const list = document.getElementById("adminLeaderboardList");
+    list.innerHTML = `<div style="color: var(--muted); font-size: 12px; padding: 10px;">Loading leaderboard records...</div>`;
+
+    try {
+        const { data, error } = await supabaseClient
+            .from("leaderboard")
+            .select("*")
+            .order("score", { ascending: false });
+
+        if (error) {
+            list.innerHTML = `<div style="color: var(--red); font-size: 12px;">Failed to load leaderboard: ${error.message}</div>`;
+            return;
+        }
+
+        adminLeaderboard = data || [];
+        renderAdminLeaderboard();
+    } catch (e) {
+        list.innerHTML = `<div style="color: var(--red); font-size: 12px;">Connection error.</div>`;
+    }
+}
+
+function renderAdminLeaderboard() {
+    const list = document.getElementById("adminLeaderboardList");
+
+    if (adminLeaderboard.length === 0) {
+        list.innerHTML = `<div class="empty">No entries in leaderboard.</div>`;
+        return;
+    }
+
+    list.innerHTML = "";
+
+    adminLeaderboard.forEach((entry, idx) => {
+        const item = document.createElement("div");
+        item.className = "animal-row";
+        item.style.padding = "10px 14px";
+        item.style.marginBottom = "6px";
+
+        item.innerHTML = `
+            <div>
+                <strong style="color: var(--cyan); font-family: 'Orbitron'; font-size: 12px;">#${idx + 1}</strong>
+                <span style="font-weight: 800; margin-left: 8px;">${entry.player_name}</span>
+                <span style="color: var(--green); font-family: 'Orbitron'; font-weight: 800; margin-left: 10px;">${entry.score} PTS</span>
+                <span style="color: var(--muted); font-size: 10px; margin-left: 8px;">(${entry.recorded_date || ''})</span>
+            </div>
+            <div style="display: flex; gap: 6px;">
+                <button type="button" class="edit-btn" onclick="adminEditLeaderboardEntry('${entry.id}', '${entry.player_name}', ${entry.score})">
+                    EDIT
+                </button>
+                <button type="button" class="danger-btn" onclick="adminDeleteLeaderboardEntry('${entry.id}')">
+                    PURGE
+                </button>
+            </div>
+        `;
+        list.appendChild(item);
+    });
+}
+
+async function adminEditLeaderboardEntry(id, oldName, oldScore) {
+    const newName = prompt("Modify Agent Callsign:", oldName);
+    if (newName === null) return;
+
+    const newScoreStr = prompt("Modify Score (Points):", oldScore);
+    if (newScoreStr === null) return;
+
+    const newScore = parseInt(newScoreStr, 10);
+    if (isNaN(newScore)) {
+        alert("Score must be a valid integer.");
+        return;
+    }
+
+    const { error } = await supabaseClient
+        .from("leaderboard")
+        .update({
+            player_name: newName.trim() || oldName,
+            score: newScore
+        })
+        .eq("id", id);
+
+    if (error) {
+        alert("Failed to update entry: " + error.message);
+        return;
+    }
+
+    await loadAdminLeaderboard();
+}
+
+async function adminDeleteLeaderboardEntry(id) {
+    if (!confirm("Permanently purge this player record from the leaderboard?")) return;
+
+    const { error } = await supabaseClient
+        .from("leaderboard")
+        .delete()
+        .eq("id", id);
+
+    if (error) {
+        alert("Failed to delete record: " + error.message);
+        return;
+    }
+
+    await loadAdminLeaderboard();
+}
+
+async function adminAddLeaderboardEntry() {
+    const nameEl = document.getElementById("manualPlayerName");
+    const scoreEl = document.getElementById("manualPlayerScore");
+
+    const name = nameEl.value.trim();
+    const scoreVal = parseInt(scoreEl.value, 10);
+
+    if (!name || isNaN(scoreVal)) {
+        alert("Provide both an Agent Callsign and numeric score.");
+        return;
+    }
+
+    const today = new Date().toISOString().split("T")[0];
+    const { error } = await supabaseClient
+        .from("leaderboard")
+        .insert({
+            player_name: name,
+            score: scoreVal,
+            recorded_date: today
+        });
+
+    if (error) {
+        alert("Failed to insert score: " + error.message);
+        return;
+    }
+
+    nameEl.value = "";
+    scoreEl.value = "";
+    await loadAdminLeaderboard();
+}
+
+async function adminWipeLeaderboard() {
+    if (!confirm("CRITICAL WARNING: Are you sure you want to completely erase the entire leaderboard?")) return;
+
+    const { error } = await supabaseClient
+        .from("leaderboard")
+        .delete()
+        .neq("score", -99999);
+
+    if (error) {
+        alert("Failed to wipe leaderboard: " + error.message);
+        return;
+    }
+
+    await loadAdminLeaderboard();
+}
+
+/* =========================================================
+   SUPABASE LOAD & SOUND ADMIN OPERATIONS
 ========================================================= */
 async function loadAnimals() {
     const { data, error } = await supabaseClient
