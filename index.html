@@ -45,7 +45,7 @@ body {
     overflow-x: hidden;
 }
 
-/* LIVE PARTICLE & RADAR CANVAS BACKGROUND */
+/* LIVE RADAR CANVAS BACKGROUND */
 #liveCanvas {
     position: fixed;
     top: 0;
@@ -56,7 +56,6 @@ body {
     z-index: 0;
 }
 
-/* Background Cyber Grid */
 body::before {
     content: '';
     position: fixed;
@@ -275,15 +274,20 @@ input:focus, select:focus {
     gap: 10px;
 }
 
-.score-badge, .skip-badge {
+.score-badge, .skip-badge, .tier-badge {
     border: 1px solid var(--line);
     background: #0c1111;
     padding: 8px 14px;
     border-radius: 10px;
     font-family: 'Orbitron', monospace;
     font-weight: 900;
-    font-size: 12px;
+    font-size: 11px;
     letter-spacing: 1px;
+}
+
+.tier-badge {
+    color: var(--cyan);
+    border-color: rgba(0, 242, 254, 0.3);
 }
 
 .score-badge {
@@ -319,7 +323,7 @@ input:focus, select:focus {
     font-size: 12px;
 }
 
-/* SOUND BEACON & AUDIO VISUALIZER */
+/* SOUND BEACON & VISUALIZER */
 .sound-card {
     text-align: center;
     padding: 24px 10px 30px;
@@ -460,14 +464,15 @@ input:focus, select:focus {
     box-shadow: 0 0 10px rgba(185, 255, 92, 0.4);
 }
 
+/* RESULTS & ANSWER REVEAL */
 .result {
-    margin-top: 16px;
+    margin-top: 18px;
     padding: 16px;
     border-radius: 12px;
-    font-weight: 800;
+    font-weight: 700;
     font-size: 13px;
     display: none;
-    letter-spacing: 0.5px;
+    line-height: 1.6;
 }
 
 .result.correct {
@@ -481,7 +486,25 @@ input:focus, select:focus {
     display: block;
     background: rgba(255, 82, 82, 0.1);
     border: 1px solid rgba(255, 82, 82, 0.3);
+    color: var(--text);
+}
+
+.reveal-box {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed rgba(255, 255, 255, 0.15);
+}
+
+.reveal-wrong {
     color: var(--red);
+    font-size: 12px;
+}
+
+.reveal-correct {
+    color: var(--green);
+    font-size: 14px;
+    font-weight: 800;
+    margin-top: 4px;
 }
 
 .skip-btn {
@@ -512,48 +535,6 @@ input:focus, select:focus {
     color: var(--muted);
 }
 
-.difficulty-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-    margin-top: 16px;
-}
-
-.difficulty {
-    border: 1px solid var(--line-subtle);
-    background: #080c0c;
-    color: var(--muted);
-    border-radius: 14px;
-    padding: 20px 10px;
-    text-align: center;
-    font-family: 'Orbitron', sans-serif;
-    font-weight: 800;
-    font-size: 13px;
-    letter-spacing: 1px;
-}
-
-.difficulty:hover {
-    border-color: rgba(185, 255, 92, 0.4);
-}
-
-.difficulty.active {
-    color: var(--green-dark);
-    background: var(--green);
-    border-color: var(--green);
-    box-shadow: 0 8px 24px rgba(185, 255, 92, 0.3);
-}
-
-.difficulty small {
-    display: block;
-    margin-top: 6px;
-    opacity: 0.8;
-    font-size: 9px;
-    font-family: 'Plus Jakarta Sans', sans-serif;
-    font-weight: 600;
-    letter-spacing: 0;
-}
-
-/* SECRET POPUP DRAWER */
 .secret-drawer {
     display: none;
     margin-top: 18px;
@@ -570,7 +551,6 @@ input:focus, select:focus {
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* ADMIN PANEL STYLING */
 .admin-header {
     display: flex;
     justify-content: space-between;
@@ -731,7 +711,6 @@ input:focus, select:focus {
 
 <body>
 
-<!-- LIVE RADAR PARTICLES CANVAS -->
 <canvas id="liveCanvas"></canvas>
 
 <div class="app">
@@ -749,7 +728,7 @@ input:focus, select:focus {
     </h1>
 
     <p class="subtitle">
-        Identify the acoustic frequency. Secure the wild.
+        Identify the acoustic frequency. Advance through all sectors.
     </p>
 
     <div class="panel">
@@ -766,7 +745,7 @@ input:focus, select:focus {
 
         <div id="entranceFeedback" class="message" style="color: var(--red);"></div>
 
-        <!-- SECRET ADMIN CIPHER DRAWER (Reveals when 'zoo' is entered) -->
+        <!-- SECRET ADMIN CIPHER DRAWER (zoo -> hunt) -->
         <div id="secretDrawer" class="secret-drawer">
             <label for="adminCipherInput" style="color: var(--gold); font-size: 10px;">
                 🔒 SECURITY OVERRIDE // CLEARANCE REQUIRED
@@ -791,46 +770,7 @@ input:focus, select:focus {
 </section>
 
 <!-- =====================================================
-     DIFFICULTY SCREEN
-===================================================== -->
-<section id="difficultyScreen" class="screen hidden">
-    <div class="logo">FIELD SECTOR DEPLOYMENT</div>
-
-    <h1 class="hero-title">
-        CHOOSE<br>
-        YOUR <span>ZONE</span>
-    </h1>
-
-    <p class="subtitle">
-        Calibrate bio-acoustic detection sensitivity:
-    </p>
-
-    <div class="panel">
-        <div class="difficulty-grid">
-            <button class="difficulty" data-level="easy">
-                EASY
-                <small>Common vocalizations</small>
-            </button>
-
-            <button class="difficulty" data-level="medium">
-                MEDIUM
-                <small>Subtle territory calls</small>
-            </button>
-
-            <button class="difficulty" data-level="hard">
-                HARD
-                <small>Cryptic & nocturnal</small>
-            </button>
-        </div>
-
-        <button type="button" id="beginLevelBtn" class="main-btn">
-            BEGIN SIGNAL HUNT
-        </button>
-    </div>
-</section>
-
-<!-- =====================================================
-     GAME SCREEN
+     GAME SCREEN (SEQUENTIAL PROGRESSION)
 ===================================================== -->
 <section id="gameScreen" class="screen hidden">
     <div class="topbar">
@@ -839,6 +779,9 @@ input:focus, select:focus {
         </div>
 
         <div class="topbar-right">
+            <div class="tier-badge" id="currentTierBadge">
+                SECTOR: EASY
+            </div>
             <div class="skip-badge" id="skipsBadge">
                 SKIPS: <span id="skipsLeftCount">3</span>/3
             </div>
@@ -850,7 +793,7 @@ input:focus, select:focus {
 
     <div class="panel">
         <div class="signal-header">
-            <span class="signal-label">ACOUSTIC BEACON</span>
+            <span class="signal-label" id="tierProgressLabel">TRANSMISSION 01</span>
             <span id="signalNumber" class="signal-number">01</span>
         </div>
 
@@ -862,7 +805,7 @@ input:focus, select:focus {
                 </div>
             </div>
 
-            <!-- Animated frequency wave bars -->
+            <!-- Waveform Animation -->
             <div class="wave-bars" id="waveBars">
                 <div class="wave-bar"></div>
                 <div class="wave-bar"></div>
@@ -911,10 +854,40 @@ input:focus, select:focus {
             3 acoustic analysis attempts remaining
         </div>
 
+        <!-- Detailed result display with answers -->
         <div id="result" class="result"></div>
 
         <button type="button" id="nextBtn" class="secondary-btn hidden">
             NEXT TRANSMISSION ➔
+        </button>
+    </div>
+</section>
+
+<!-- =====================================================
+     MISSION COMPLETE SCREEN
+===================================================== -->
+<section id="completeScreen" class="screen hidden">
+    <div class="logo">RECONNAISSANCE REPORT // FINISHED</div>
+
+    <h1 class="hero-title">
+        MISSION<br>
+        <span>COMPLETE</span>
+    </h1>
+
+    <p class="subtitle">
+        All bio-acoustic sectors explored and analyzed.
+    </p>
+
+    <div class="panel" style="text-align: center;">
+        <div style="font-size: 3rem; margin-bottom: 14px;">📡</div>
+        <div style="font-family: 'Orbitron'; font-size: 2.2rem; color: var(--green); margin-bottom: 12px;">
+            <span id="finalScoreDisplay">0</span> PTS SECURED
+        </div>
+        <p style="color: var(--muted); margin-bottom: 24px; font-size: 13px;">
+            Outstanding field work, Agent <span id="finalAgentName" style="color: #fff; font-weight: bold;"></span>. Transmission archives recorded.
+        </p>
+        <button type="button" class="main-btn" onclick="returnToStart()">
+            SURFACE TO ENTRANCE
         </button>
     </div>
 </section>
@@ -965,11 +938,11 @@ input:focus, select:focus {
             </div>
 
             <div>
-                <label for="animalDifficulty">Frequency Difficulty</label>
+                <label for="animalDifficulty">Frequency Difficulty Tier</label>
                 <select id="animalDifficulty">
-                    <option value="easy">Easy (Recognizable)</option>
-                    <option value="medium">Medium (Moderate Ambiguity)</option>
-                    <option value="hard">Hard (Advanced Specialist)</option>
+                    <option value="easy">Easy Tier (First Sector)</option>
+                    <option value="medium">Medium Tier (Second Sector)</option>
+                    <option value="hard">Hard Tier (Final Sector)</option>
                 </select>
             </div>
 
@@ -1009,7 +982,7 @@ input:focus, select:focus {
 
 <script>
 /* =========================================================
-   LIVE RADAR & BIO-ACOUSTIC CANVAS BACKGROUND
+   LIVE RADAR BACKGROUND
 ========================================================= */
 const canvas = document.getElementById("liveCanvas");
 const ctx = canvas.getContext("2d");
@@ -1023,9 +996,7 @@ window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
 
 const particles = [];
-const PARTICLE_COUNT = 45;
-
-for (let i = 0; i < PARTICLE_COUNT; i++) {
+for (let i = 0; i < 45; i++) {
     particles.push({
         x: Math.random() * w,
         y: Math.random() * h,
@@ -1045,7 +1016,6 @@ function drawLiveCanvas() {
     const cy = h * 0.15;
     const radarRadius = Math.max(w, h) * 0.75;
 
-    // Sweeping Radar Cone
     ctx.save();
     ctx.beginPath();
     ctx.moveTo(cx, cy);
@@ -1060,7 +1030,6 @@ function drawLiveCanvas() {
 
     radarAngle += 0.007;
 
-    // Floating particles & linkages
     for (let i = 0; i < particles.length; i++) {
         const p = particles[i];
         p.x += p.vx;
@@ -1098,7 +1067,7 @@ function drawLiveCanvas() {
 drawLiveCanvas();
 
 /* =========================================================
-   SUPABASE CONFIG (UPDATED CREDENTIALS)
+   SUPABASE CONFIG
 ========================================================= */
 const SUPABASE_URL = "https://bzorueowocopopdqekmo.supabase.co";
 const SUPABASE_KEY = "sb_publishable_iYEKPmjSiuD8XzT3NgCobQ_lrvQVs8r";
@@ -1106,17 +1075,23 @@ const SUPABASE_KEY = "sb_publishable_iYEKPmjSiuD8XzT3NgCobQ_lrvQVs8r";
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 /* =========================================================
-   GLOBAL GAME STATE
+   SEQUENTIAL GAME STATE
 ========================================================= */
+const TIERS = ["easy", "medium", "hard"];
+let currentTierIndex = 0; // 0 = easy, 1 = medium, 2 = hard
+
 let participantName = "";
-let selectedDifficulty = null;
 let currentAnimal = null;
-let previousAnimalId = null;
+let currentTierQueue = [];
+let currentTierQueueIndex = 0;
+
 let attempts = 0;
 let score = 0;
 let signalNumber = 0;
 let skipsRemaining = 3;
-let animals = [];
+let lastEnteredAnswer = "";
+
+let allAnimals = [];
 let adminAnimals = [];
 let currentFilter = "all";
 
@@ -1125,8 +1100,8 @@ let currentFilter = "all";
 ========================================================= */
 const screens = [
     "nameScreen",
-    "difficultyScreen",
     "gameScreen",
+    "completeScreen",
     "adminScreen"
 ];
 
@@ -1140,8 +1115,7 @@ function showScreen(id) {
 }
 
 /* =========================================================
-   NAME SCREEN & SECRET ADMIN PROTOCOL
-   User = 'zoo' | Pass = 'hunt'
+   ENTRANCE & ADMIN TRIGGER (zoo -> hunt)
 ========================================================= */
 const nameInput = document.getElementById("nameInput");
 const startBtn = document.getElementById("startBtn");
@@ -1153,22 +1127,15 @@ const entranceFeedback = document.getElementById("entranceFeedback");
 const cipherMessage = document.getElementById("cipherMessage");
 
 startBtn.addEventListener("click", startEntry);
-nameInput.addEventListener("keydown", function(e) {
-    if (e.key === "Enter") startEntry();
-});
-
-adminCipherInput.addEventListener("keydown", function(e) {
-    if (e.key === "Enter") verifyAdminPass();
-});
-
+nameInput.addEventListener("keydown", (e) => { if (e.key === "Enter") startEntry(); });
+adminCipherInput.addEventListener("keydown", (e) => { if (e.key === "Enter") verifyAdminPass(); });
 unlockAdminBtn.addEventListener("click", verifyAdminPass);
-
-cancelSecretBtn.addEventListener("click", function() {
+cancelSecretBtn.addEventListener("click", () => {
     secretDrawer.style.display = "none";
     cipherMessage.textContent = "";
 });
 
-function startEntry() {
+async function startEntry() {
     entranceFeedback.textContent = "";
     const val = nameInput.value.trim();
 
@@ -1177,7 +1144,6 @@ function startEntry() {
         return;
     }
 
-    /* Secret Admin Trigger: If callsign is 'zoo', drop down the cipher box */
     if (val.toLowerCase() === "zoo") {
         secretDrawer.style.display = "block";
         adminCipherInput.value = "";
@@ -1188,10 +1154,24 @@ function startEntry() {
     secretDrawer.style.display = "none";
     participantName = val;
     document.getElementById("agentName").textContent = participantName;
-    showScreen("difficultyScreen");
+
+    startBtn.textContent = "CALIBRATING SENSORS...";
+    startBtn.disabled = true;
+
+    await loadAnimals();
+
+    startBtn.textContent = "ENTER THE FIELD";
+    startBtn.disabled = false;
+
+    if (allAnimals.length === 0) {
+        alert("No acoustic signals catalogued in database yet. Deploy signals in admin portal.");
+        return;
+    }
+
+    // Start sequentially at Tier 1 (Easy)
+    initSequentialExpedition();
 }
 
-/* Verify secret cipher: must match 'hunt' */
 async function verifyAdminPass() {
     cipherMessage.textContent = "";
     const cipher = adminCipherInput.value.trim();
@@ -1208,87 +1188,76 @@ async function verifyAdminPass() {
 }
 
 /* =========================================================
-   DIFFICULTY SELECTION
+   SEQUENTIAL PROGRESSION ENGINE
 ========================================================= */
-document.querySelectorAll(".difficulty").forEach(button => {
-    button.addEventListener("click", function() {
-        document.querySelectorAll(".difficulty").forEach(b => b.classList.remove("active"));
-        this.classList.add("active");
-        selectedDifficulty = this.dataset.level;
-    });
-});
-
-document.getElementById("beginLevelBtn").addEventListener("click", async function() {
-    if (!selectedDifficulty) {
-        alert("Select an acoustic detection zone.");
-        return;
-    }
-
-    this.textContent = "CALIBRATING SENSORS...";
-    await loadAnimals();
-    this.textContent = "BEGIN SIGNAL HUNT";
-
-    const available = animals.filter(a => a.difficulty === selectedDifficulty);
-
-    if (available.length === 0) {
-        alert("No acoustic signals catalogued in this zone yet. Consult Command Administration.");
-        return;
-    }
-
+function initSequentialExpedition() {
     score = 0;
     signalNumber = 0;
     skipsRemaining = 3;
-    previousAnimalId = null;
+    currentTierIndex = 0; // Starts at easy
 
     document.getElementById("score").textContent = score;
     updateSkipsUI();
 
     showScreen("gameScreen");
-    newSignal();
-});
-
-/* =========================================================
-   LOAD ANIMALS (CLOUD DB)
-========================================================= */
-async function loadAnimals() {
-    const { data, error } = await supabaseClient
-        .from("animals")
-        .select("*");
-
-    if (error) {
-        console.error(error);
-        alert("Failed to intercept signal repository: " + error.message);
-        return;
-    }
-
-    animals = data || [];
+    startTier(currentTierIndex);
 }
 
-/* =========================================================
-   NEW / RANDOM SIGNAL
-========================================================= */
-function newSignal() {
-    const available = animals.filter(animal => 
-        animal.difficulty === selectedDifficulty && 
-        animal.id !== previousAnimalId
-    );
+function startTier(tierIdx) {
+    const tierName = TIERS[tierIdx];
+    
+    // Filter and shuffle animals for this tier
+    const tierAnimals = allAnimals.filter(a => a.difficulty === tierName);
 
-    const pool = available.length > 0 
-        ? available 
-        : animals.filter(animal => animal.difficulty === selectedDifficulty);
+    if (tierAnimals.length === 0) {
+        // If this tier is empty, jump to next tier
+        if (tierIdx < TIERS.length - 1) {
+            startTier(tierIdx + 1);
+            return;
+        } else {
+            finishExpedition();
+            return;
+        }
+    }
 
-    if (pool.length === 0) {
-        alert("No signals available in this sector.");
+    // Shuffle tier animals
+    currentTierQueue = [...tierAnimals].sort(() => Math.random() - 0.5);
+    currentTierQueueIndex = 0;
+
+    updateTierBadges();
+    loadNextQueuedSignal();
+}
+
+function updateTierBadges() {
+    const tierName = TIERS[currentTierIndex].toUpperCase();
+    document.getElementById("currentTierBadge").textContent = "SECTOR: " + tierName;
+    document.getElementById("difficultyDisplay").textContent = "SECTOR // " + tierName;
+}
+
+function loadNextQueuedSignal() {
+    // Check if we exhausted all signals in this tier
+    if (currentTierQueueIndex >= currentTierQueue.length) {
+        // Advance to next tier if available
+        if (currentTierIndex < TIERS.length - 1) {
+            currentTierIndex++;
+            alert(`✓ SECTOR CLEARED! Advancing to ${TIERS[currentTierIndex].toUpperCase()} zone.`);
+            startTier(currentTierIndex);
+        } else {
+            finishExpedition();
+        }
         return;
     }
 
-    currentAnimal = pool[Math.floor(Math.random() * pool.length)];
-    previousAnimalId = currentAnimal.id;
+    currentAnimal = currentTierQueue[currentTierQueueIndex];
+    currentTierQueueIndex++;
+
     attempts = 0;
     signalNumber++;
+    lastEnteredAnswer = "";
 
     document.getElementById("signalNumber").textContent = String(signalNumber).padStart(2, "0");
-    document.getElementById("difficultyDisplay").textContent = "SECTOR // " + currentAnimal.difficulty.toUpperCase();
+    document.getElementById("tierProgressLabel").textContent = 
+        `${TIERS[currentTierIndex].toUpperCase()} // ${currentTierQueueIndex} OF ${currentTierQueue.length}`;
 
     const answerInput = document.getElementById("answerInput");
     answerInput.value = "";
@@ -1299,7 +1268,7 @@ function newSignal() {
 
     const result = document.getElementById("result");
     result.className = "result";
-    result.textContent = "";
+    result.innerHTML = "";
 
     updateAttempts();
     resetAudioVisualizer();
@@ -1308,6 +1277,20 @@ function newSignal() {
     audio.pause();
     audio.currentTime = 0;
     audio.src = currentAnimal.file_url;
+}
+
+function finishExpedition() {
+    const audio = document.getElementById("audio");
+    audio.pause();
+
+    document.getElementById("finalScoreDisplay").textContent = score;
+    document.getElementById("finalAgentName").textContent = participantName;
+    showScreen("completeScreen");
+}
+
+function returnToStart() {
+    showScreen("nameScreen");
+    nameInput.value = "";
 }
 
 /* =========================================================
@@ -1346,10 +1329,10 @@ function resetAudioVisualizer() {
 }
 
 /* =========================================================
-   ANSWER VERIFICATION
+   ANSWER VERIFICATION & EXPLICIT REVEAL
 ========================================================= */
 document.getElementById("checkBtn").addEventListener("click", checkAnswer);
-document.getElementById("answerInput").addEventListener("keydown", function(e) {
+document.getElementById("answerInput").addEventListener("keydown", (e) => {
     if (e.key === "Enter") checkAnswer();
 });
 
@@ -1369,32 +1352,52 @@ function checkAnswer() {
 
     if (!answer) return;
 
+    lastEnteredAnswer = input.trim();
     attempts++;
     const correct = cleanAnswer(currentAnimal.name);
 
     if (answer === correct) {
         score++;
         document.getElementById("score").textContent = score;
-        showResult("✓ SIGNAL IDENTIFIED: " + currentAnimal.name.toUpperCase() + " (+1 PT)", true);
-        finishSignal();
+        showResultCorrect(`✓ SIGNAL IDENTIFIED: <strong>${currentAnimal.name.toUpperCase()}</strong> (+1 PT)`);
+        finishSignalStep();
         return;
     }
 
     if (attempts < 3) {
-        showResult("✕ INACCURATE MATCH — RE-EVALUATE FREQUENCY", false);
+        showResultRetry(`✕ MISIDENTIFIED ("${lastEnteredAnswer}") — RE-EVALUATE FREQUENCY`);
         updateAttempts();
         document.getElementById("answerInput").select();
         return;
     }
 
-    showResult("✕ SIGNAL CORRUPTED — TARGET WAS: " + currentAnimal.name.toUpperCase(), false);
-    finishSignal();
+    // 3 ATTEMPTS EXHAUSTED: Reveal both wrong guess and correct answer
+    showResultWrong(lastEnteredAnswer, currentAnimal.name);
+    finishSignalStep();
 }
 
-function showResult(text, correct) {
+function showResultCorrect(html) {
     const result = document.getElementById("result");
-    result.textContent = text;
-    result.className = correct ? "result correct" : "result wrong";
+    result.className = "result correct";
+    result.innerHTML = html;
+}
+
+function showResultRetry(html) {
+    const result = document.getElementById("result");
+    result.className = "result wrong";
+    result.innerHTML = html;
+}
+
+function showResultWrong(userGuess, actualAnswer) {
+    const result = document.getElementById("result");
+    result.className = "result wrong";
+    result.innerHTML = `
+        <div style="font-weight: 900; color: var(--red); margin-bottom: 4px;">✕ SIGNAL CORRUPTED — ATTEMPTS EXHAUSTED</div>
+        <div class="reveal-box">
+            <div class="reveal-wrong">YOUR ENTRY: "<strong>${userGuess || 'No input'}</strong>"</div>
+            <div class="reveal-correct">CORRECT TARGET: <strong>${actualAnswer.toUpperCase()}</strong></div>
+        </div>
+    `;
 }
 
 /* =========================================================
@@ -1417,23 +1420,30 @@ function updateAttempts() {
 }
 
 /* =========================================================
-   SKIP FEATURE (3 OVERALL MAXIMUM)
+   SKIP FEATURE (3 OVERALL) WITH ANSWER REVEAL
 ========================================================= */
 const skipBtn = document.getElementById("skipBtn");
 skipBtn.addEventListener("click", skipSignal);
 
 function skipSignal() {
-    if (skipsRemaining <= 0) return;
+    if (skipsRemaining <= 0 || !currentAnimal) return;
 
     skipsRemaining--;
     updateSkipsUI();
 
-    showResult("⚡ SIGNAL BYPASS ENGAGED — REROUTING FREQUENCY...", false);
-
     audio.pause();
-    setTimeout(() => {
-        newSignal();
-    }, 450);
+
+    // Show answer when skipped so player learns what it was
+    const result = document.getElementById("result");
+    result.className = "result wrong";
+    result.innerHTML = `
+        <div style="font-weight: 800; color: var(--yellow);">⚡ FREQUENCY BYPASSED (SKIPPED)</div>
+        <div class="reveal-box">
+            <div class="reveal-correct">SPECIMEN WAS: <strong>${currentAnimal.name.toUpperCase()}</strong></div>
+        </div>
+    `;
+
+    finishSignalStep();
 }
 
 function updateSkipsUI() {
@@ -1453,29 +1463,35 @@ function updateSkipsUI() {
 }
 
 /* =========================================================
-   FINISH SIGNAL & NEXT
+   STEP COMPLETION & NEXT TRIGGER
 ========================================================= */
-function finishSignal() {
+function finishSignalStep() {
     document.getElementById("answerInput").disabled = true;
     document.getElementById("checkBtn").disabled = true;
     document.getElementById("nextBtn").classList.remove("hidden");
 }
 
-document.getElementById("nextBtn").addEventListener("click", newSignal);
-
-/* =========================================================
-   ADMIN LOGOUT / DISCONNECT
-========================================================= */
-document.getElementById("logoutBtn").addEventListener("click", function() {
-    showScreen("nameScreen");
-    nameInput.value = "";
-    adminCipherInput.value = "";
-    secretDrawer.style.display = "none";
+document.getElementById("nextBtn").addEventListener("click", () => {
+    loadNextQueuedSignal();
 });
 
 /* =========================================================
-   ADMIN LIBRARY & STATS
+   SUPABASE LOAD & ADMIN OPERATIONS
 ========================================================= */
+async function loadAnimals() {
+    const { data, error } = await supabaseClient
+        .from("animals")
+        .select("*");
+
+    if (error) {
+        console.error(error);
+        alert("Failed to load signal repository: " + error.message);
+        return;
+    }
+
+    allAnimals = data || [];
+}
+
 async function loadAdminLibrary() {
     const { data, error } = await supabaseClient
         .from("animals")
@@ -1569,9 +1585,6 @@ document.querySelectorAll(".filter-btn").forEach(button => {
     });
 });
 
-/* =========================================================
-   UPLOAD SOUND SPECIMEN
-========================================================= */
 document.getElementById("uploadBtn").addEventListener("click", uploadAnimal);
 
 async function uploadAnimal() {
@@ -1650,9 +1663,6 @@ async function uploadAnimal() {
     await loadAdminLibrary();
 }
 
-/* =========================================================
-   PURGE ANIMAL
-========================================================= */
 async function deleteAnimal(animal) {
     const confirmed = confirm("Purge frequency '" + animal.name + "' from the live reconnaissance grid?");
     if (!confirmed) return;
@@ -1684,6 +1694,13 @@ async function deleteAnimal(animal) {
 
     await loadAdminLibrary();
 }
+
+document.getElementById("logoutBtn").addEventListener("click", () => {
+    showScreen("nameScreen");
+    nameInput.value = "";
+    adminCipherInput.value = "";
+    secretDrawer.style.display = "none";
+});
 
 /* =========================================================
    INITIALIZE
