@@ -1041,7 +1041,6 @@ let radarAngle = 0;
 function drawLiveCanvas() {
     ctx.clearRect(0, 0, w, h);
 
-    // Subtle center sonar origin
     const cx = w * 0.85;
     const cy = h * 0.15;
     const radarRadius = Math.max(w, h) * 0.75;
@@ -1099,10 +1098,10 @@ function drawLiveCanvas() {
 drawLiveCanvas();
 
 /* =========================================================
-   SUPABASE CONFIG
+   SUPABASE CONFIG (UPDATED CREDENTIALS)
 ========================================================= */
-const SUPABASE_URL = "https://dpvfngcsdydatlnrkvup.supabase.co";
-const SUPABASE_KEY = "sb_publishable_FknM8sfewItdaPpf725Cjg_mb3i5gBf";
+const SUPABASE_URL = "https://bzorueowocopopdqekmo.supabase.co";
+const SUPABASE_KEY = "sb_publishable_iYEKPmjSiuD8XzT3NgCobQ_lrvQVs8r";
 
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -1116,7 +1115,7 @@ let previousAnimalId = null;
 let attempts = 0;
 let score = 0;
 let signalNumber = 0;
-let skipsRemaining = 3; // 3 SKIPS MAXIMUM OVERALL
+let skipsRemaining = 3;
 let animals = [];
 let adminAnimals = [];
 let currentFilter = "all";
@@ -1258,7 +1257,7 @@ async function loadAnimals() {
 
     if (error) {
         console.error(error);
-        alert("Failed to intercept signal repository.");
+        alert("Failed to intercept signal repository: " + error.message);
         return;
     }
 
